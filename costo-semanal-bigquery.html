@@ -1,0 +1,516 @@
+<title>Costo Semanal BigQuery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --grid:#E3E8ED; --baseline:#C7D0D9;
+    --series-diego:#2a78d6; --series-jose:#eb6834; --series-alejandro:#1baf7a;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --grid:#212B36; --baseline:#2C3948;
+      --series-diego:#5b9eec; --series-jose:#e8804c; --series-alejandro:#37c290;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --grid:#212B36; --baseline:#2C3948;
+    --series-diego:#5b9eec; --series-jose:#e8804c; --series-alejandro:#37c290;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  /* ---------- Masthead ---------- */
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:28px; }
+  .eyebrow{
+    font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 34px/1.15 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.6; max-width:70ch; margin-top:2px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Stat tiles ---------- */
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin:28px 0; }
+  .tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+  }
+  .tile .label{ font-size:12.5px; color:var(--muted); font-weight:500; }
+  .tile .value{ font:600 30px/1.05 "IBM Plex Mono", monospace; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .tile .sub{ font-size:12.5px; color:var(--ink-2); display:flex; align-items:center; gap:6px; }
+  .pill{
+    display:inline-flex; align-items:center; gap:4px; font:600 11.5px/1 "IBM Plex Mono", monospace;
+    padding:3px 7px; border-radius:100px;
+  }
+  .pill.up{ background:rgba(208,59,59,.12); color:var(--critical); }
+  .pill.down{ background:rgba(12,163,12,.12); color:var(--good); }
+  .pill.flat{ background:var(--accent-soft); color:var(--accent-ink); }
+  .tile.hero{ background:linear-gradient(155deg, var(--accent-soft), var(--surface) 60%); border-color:var(--accent); }
+  .tile.hero .value{ font-size:36px; color:var(--ink); }
+
+  /* ---------- Cards ---------- */
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px;
+  }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:80ch; }
+
+  .insight{
+    display:flex; gap:14px; align-items:flex-start; background:var(--surface-2);
+    border:1px dashed var(--border); border-radius:14px; padding:16px 18px; margin-bottom:20px;
+  }
+  .insight .ico{ font-size:20px; line-height:1; margin-top:1px; }
+  .insight p{ margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.65; }
+  .insight b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Grid 2 col ---------- */
+  .grid2{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; }
+  @media (max-width:860px){ .grid2{ grid-template-columns:1fr; } }
+
+  /* ---------- Chart chrome ---------- */
+  .chart-wrap{ position:relative; }
+  svg text{ font-family:"IBM Plex Sans", sans-serif; }
+  .axis-label{ font-size:11px; fill:var(--muted); }
+  .grid-line{ stroke:var(--grid); stroke-width:1; }
+  .base-line{ stroke:var(--baseline); stroke-width:1; }
+  .tooltip{
+    position:absolute; pointer-events:none; background:#FFFFFF; color:#101820;
+    font:500 12px/1.5 "IBM Plex Mono", monospace; padding:8px 10px; border-radius:8px;
+    border:1px solid #DCE3EA; box-shadow:var(--shadow); opacity:0; transform:translate(-50%,-110%);
+    transition:opacity .1s; white-space:nowrap; z-index:5;
+  }
+  .tooltip b{ color:#0B0F14; }
+  .hit{ cursor:pointer; }
+
+  /* ---------- Horizontal bars ---------- */
+  .barlist{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+  .barrow{ display:grid; grid-template-columns:120px 1fr 84px; align-items:center; gap:10px; }
+  .barrow .who{ font-size:13px; font-weight:500; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .barrow .who small{ display:block; font:400 11px "IBM Plex Mono",monospace; color:var(--muted); font-weight:400; }
+  .track{ background:var(--surface-2); border-radius:6px; height:20px; position:relative; overflow:hidden; }
+  .fill{ position:absolute; inset:0 auto 0 0; border-radius:6px; }
+  .barrow .amt{ text-align:right; font:600 13px "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+
+  /* ---------- Tables ---------- */
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+  thead th{
+    text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+  td.mono{ font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--muted); }
+  .swatch{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; }
+  .qprev{ max-width:360px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); }
+
+  /* ---------- Footer ---------- */
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.7; max-width:90ch; margin:0 0 8px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>totalplay-8726e &nbsp;·&nbsp; INFORMATION_SCHEMA.JOBS_BY_PROJECT en vivo</div>
+    <h1>Costo semanal de BigQuery</h1>
+    <div class="subtitle">
+      Semana en curso: <b>lunes 17 – domingo 23 de agosto de 2026</b> · datos capturados hasta el
+      <b>miércoles 19, 00:35 UTC</b> (3 de 7 días). Generado el 19 de agosto de 2026, 00:36 UTC.
+      Costo estimado a $6.25/TiB on-demand, sin descuentos por compromiso.
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="tile hero">
+      <div class="label">Costo acumulado esta semana (lun–mié)</div>
+      <div class="value">$583.04</div>
+      <div class="sub"><span class="pill up">▲ 5.2%</span> vs. mismos 3 días de la semana pasada ($554.33)</div>
+    </div>
+    <div class="tile">
+      <div class="label">Queries ejecutadas</div>
+      <div class="value">2,332</div>
+      <div class="sub"><span class="pill down">▼ 22.7%</span> vs. mismos 3 días ($3,017 q)</div>
+    </div>
+    <div class="tile">
+      <div class="label">TiB facturados</div>
+      <div class="value">93.29</div>
+      <div class="sub">≈ $6.25 por TiB escaneado</div>
+    </div>
+    <div class="tile">
+      <div class="label">Última semana completa (10–16 ago)</div>
+      <div class="value">$1,094</div>
+      <div class="sub"><span class="pill up">▲ 20.3%</span> vs. semana previa ($910.02)</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <div class="ico">📉</div>
+    <p>
+      <b>El costo semanal cayó ~84% desde el clustering de KPIS.Iptv.</b>
+      Promedio semanal jun–jul (6 semanas, antes/durante el cambio del 29 de julio): <b>$6,471</b>.
+      Promedio de las dos semanas completas de agosto: <b>$1,002</b>. La tendencia abajo lo muestra
+      con el quiebre justo después de la semana del 27 de julio.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Tendencia · últimas 9 semanas</h2>
+      <div class="meta">nivel=semana · JOBS_BY_PROJECT</div>
+    </div>
+    <div class="card-note">Semana = lunes a domingo. La última barra (17 ago) está en curso — línea punteada y marcador hueco.</div>
+    <div class="chart-wrap">
+      <svg id="trendChart" viewBox="0 0 960 300" width="100%" style="overflow:visible; margin-top:10px;">
+        <!-- gridlines -->
+        <g id="trendGrid"></g>
+        <!-- annotation -->
+        <line x1="585" y1="20" x2="585" y2="260" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>
+        <text x="591" y="30" class="axis-label" font-family="IBM Plex Mono, monospace">clustering 29 jul</text>
+        <!-- area fill -->
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path id="trendArea" fill="url(#areaGrad)" stroke="none"></path>
+        <path id="trendLineSolid" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path id="trendLineDash" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 6"></path>
+        <g id="trendPoints"></g>
+        <g id="trendLabels"></g>
+      </svg>
+      <div class="tooltip" id="trendTip"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Costo por día · semana en curso</h2>
+      <div class="meta">JOBS_BY_PROJECT</div>
+    </div>
+    <div class="chart-wrap">
+      <svg id="dayChart" viewBox="0 0 960 160" width="100%" style="overflow:visible; margin-top:6px;">
+        <g id="dayBars"></g>
+      </svg>
+      <div class="tooltip" id="dayTip"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-head">
+        <h2>Queries por usuario</h2>
+        <div class="meta">semana en curso</div>
+      </div>
+      <div class="card-note">Usuario B lidera esta semana; la semana pasada completa lideró Usuario A con $805.27 — un giro notable.</div>
+      <div class="barlist" id="userBars"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Tabla más consumida</h2>
+        <div class="meta">semana en curso</div>
+      </div>
+      <div class="card-note">Una query con JOIN cuenta su costo completo en cada tabla que toca: la suma puede superar el costo real de la semana.</div>
+      <div class="barlist" id="tableBars"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Cruce usuario × tabla</h2>
+      <div class="meta">top 10 · semana en curso</div>
+    </div>
+    <div class="card-note">Mismo caveat de doble conteo: events_* y events_intraday_* son dos referencias distintas que una misma query puede tocar a la vez.</div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Usuario</th><th>Tabla</th><th class="num">Queries</th><th class="num">Costo (USD)</th></tr></thead>
+        <tbody id="crossBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Queries individuales más caras</h2>
+      <div class="meta">top 8 · semana en curso</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Usuario</th><th>Ejecutado</th><th class="num">TiB</th><th class="num">Costo</th><th>Query (preview)</th></tr></thead>
+        <tbody id="queryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Metodología:</b> fuente <code>totalplay-8726e.region-us.INFORMATION_SCHEMA.JOBS_BY_PROJECT</code>
+      (retiene ~180 días). Se excluyen jobs <code>statement_type = 'SCRIPT'</code> para no duplicar el costo de sus
+      sentencias hijas (validado contra factura real de julio 2026, ~1.5% de diferencia). Costo estimado a
+      $6.25/TiB on-demand — no incluye descuentos por compromiso ni es la factura oficial. Fechas en UTC.
+    </p>
+    <p>Reportes SQL equivalentes en esta carpeta: <code>15_costo_por_semana.sql</code>, <code>16_queries_por_usuario.sql</code>, <code>17_tabla_mas_consumida.sql</code>, <code>19_cruce_usuario_tabla.sql</code>.</p>
+    <div class="chips">
+      <span class="chip">totalplay-8726e</span>
+      <span class="chip">KPIS.monitor_costos_bq_mensual</span>
+      <span class="chip">región us</span>
+      <span class="chip">$6.25/TiB</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  // ---------- data ----------
+  var weeks = [
+    {label:'22 jun', full:'Semana del 22 jun', cost:4969.78, q:4790, tib:795.165, partial:false},
+    {label:'29 jun', full:'Semana del 29 jun', cost:6945.02, q:6437, tib:1111.203, partial:false},
+    {label:'06 jul', full:'Semana del 06 jul', cost:7245.07, q:6012, tib:1159.211, partial:false},
+    {label:'13 jul', full:'Semana del 13 jul', cost:7529.17, q:3849, tib:1204.667, partial:false},
+    {label:'20 jul', full:'Semana del 20 jul', cost:7127.41, q:5715, tib:1140.386, partial:false},
+    {label:'27 jul', full:'Semana del 27 jul', cost:5011.40, q:7552, tib:801.825, partial:false},
+    {label:'03 ago', full:'Semana del 03 ago', cost:910.02,  q:6111, tib:145.603, partial:false},
+    {label:'10 ago', full:'Semana del 10 ago', cost:1094.36, q:7040, tib:175.097, partial:false},
+    {label:'17 ago', full:'Semana del 17 ago (en curso)', cost:583.04, q:2332, tib:93.286, partial:true}
+  ];
+
+  var days = [
+    {label:'Lun 17', cost:409.03, q:1230, tib:65.445, partial:false},
+    {label:'Mar 18', cost:173.18, q:1021, tib:27.709, partial:false},
+    {label:'Mié 19*', cost:0.82, q:86, tib:0.131, partial:true}
+  ];
+
+  var users = [
+    {name:'Usuario B', mail:'usuario.b@empresa.com', cost:295.33, q:278, tib:47.252, color:'var(--series-diego)'},
+    {name:'Usuario A', mail:'usuario.a@empresa.com', cost:271.01, q:2026, tib:43.362, color:'var(--series-jose)'},
+    {name:'Usuario C', mail:'usuario.c@empresa.com', cost:16.70, q:29, tib:2.672, color:'var(--series-alejandro)'}
+  ];
+
+  var tables = [
+    {name:'analytics_153774428.events_*', cost:311.86, q:291, users:2},
+    {name:'analytics_153774428.events_intraday_*', cost:310.63, q:298, users:2},
+    {name:'KPIS.Iptv', cost:249.64, q:168, users:1},
+    {name:'KPIS.EventMKP', cost:31.43, q:373, users:1},
+    {name:'KPIS.PingServers', cost:7.88, q:603, users:1},
+    {name:'KPIS.EventosMobile', cost:6.24, q:251, users:1},
+    {name:'analytics…events_intraday_20260817', cost:5.28, q:356, users:1},
+    {name:'analytics…events_intraday_20260816', cost:2.87, q:82, users:1}
+  ];
+
+  var cross = [
+    ['Usuario B','analytics_153774428.events_*',262,295.16,'var(--series-diego)'],
+    ['Usuario B','analytics_153774428.events_intraday_*',270,294.86,'var(--series-diego)'],
+    ['Usuario A','KPIS.Iptv',168,249.64,'var(--series-jose)'],
+    ['Usuario A','KPIS.EventMKP',373,31.43,'var(--series-jose)'],
+    ['Usuario C','analytics_153774428.events_*',29,16.70,'var(--series-alejandro)'],
+    ['Usuario C','analytics_153774428.events_intraday_*',28,15.77,'var(--series-alejandro)'],
+    ['Usuario A','KPIS.PingServers',603,7.88,'var(--series-jose)'],
+    ['Usuario A','KPIS.EventosMobile',251,6.24,'var(--series-jose)'],
+    ['Usuario A','analytics…events_intraday_20260817',356,5.28,'var(--series-jose)'],
+    ['Usuario A','analytics…events_intraday_20260816',82,2.87,'var(--series-jose)']
+  ];
+
+  var topQueries = [
+    ['Usuario A','2026-08-18 16:25',0.697,4.36,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['Usuario A','2026-08-18 13:57',0.697,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['Usuario A','2026-08-17 19:57',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['Usuario A','2026-08-17 19:58',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['Usuario A','2026-08-17 16:35',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['Usuario A','2026-08-17 14:21',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['Usuario B','2026-08-17 20:02',0.363,2.27,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…'],
+    ['Usuario B','2026-08-17 17:22',0.362,2.26,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…']
+  ];
+
+  var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
+  var fmtNum = function(n){ return n.toLocaleString('en-US'); };
+  var css = function(v){ return getComputedStyle(document.body).getPropertyValue(v).trim() || v; };
+
+  // ================= TREND CHART =================
+  (function(){
+    var svg = document.getElementById('trendChart');
+    var padL=50, padR=20, top=20, bottom=260, w=960-padL-padR;
+    var maxY = 8000;
+    var n = weeks.length;
+    var stepX = w/(n-1);
+    var x = function(i){ return padL + i*stepX; };
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+
+    // grid
+    var gridTicks = [0,2000,4000,6000,8000];
+    var gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy = y(t);
+      gridHtml += '<line class="grid-line" x1="'+padL+'" y1="'+gy+'" x2="'+(960-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="axis-label" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace">$'+ (t/1000) +'k</text>';
+    });
+    document.getElementById('trendGrid').innerHTML = gridHtml;
+
+    // paths
+    var solidPts = weeks.slice(0, n-1).map(function(d,i){ return x(i)+','+y(d.cost); });
+    var dashPts = [x(n-2)+','+y(weeks[n-2].cost), x(n-1)+','+y(weeks[n-1].cost)];
+    document.getElementById('trendLineSolid').setAttribute('d','M'+solidPts.join(' L'));
+    document.getElementById('trendLineDash').setAttribute('d','M'+dashPts.join(' L'));
+
+    var areaPts = weeks.map(function(d,i){ return x(i)+','+y(d.cost); });
+    var areaPath = 'M'+x(0)+','+bottom+' L'+areaPts.join(' L')+' L'+x(n-1)+','+bottom+' Z';
+    document.getElementById('trendArea').setAttribute('d', areaPath);
+
+    // points + labels
+    var ptsHtml='', labelHtml='';
+    weeks.forEach(function(d,i){
+      var cx=x(i), cy=y(d.cost);
+      var color = css('--accent');
+      if(d.partial){
+        ptsHtml += '<circle class="hit" data-i="'+i+'" cx="'+cx+'" cy="'+cy+'" r="6" fill="var(--surface)" stroke="'+color+'" stroke-width="2.5"></circle>';
+      } else {
+        ptsHtml += '<circle class="hit" data-i="'+i+'" cx="'+cx+'" cy="'+cy+'" r="8" fill="transparent"></circle>';
+        ptsHtml += '<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="'+color+'"></circle>';
+      }
+      labelHtml += '<text class="axis-label" x="'+cx+'" y="278" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+(d.partial?' •':'')+'</text>';
+    });
+    document.getElementById('trendPoints').innerHTML = ptsHtml;
+    document.getElementById('trendLabels').innerHTML = labelHtml;
+
+    var tip = document.getElementById('trendTip');
+    svg.querySelectorAll('.hit').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = weeks[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.full+'</b><br>Costo: <b>'+fmtUSD(d.cost)+'</b><br>Queries: '+fmtNum(d.q)+' &nbsp;·&nbsp; '+d.tib.toFixed(1)+' TiB';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= DAILY CHART =================
+  (function(){
+    var svg = document.getElementById('dayChart');
+    var padL=50, padR=20, top=10, bottom=120, w=960-padL-padR;
+    var maxY = 450;
+    var n = days.length;
+    var bw = 70;
+    var slot = w/n;
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+
+    var html='';
+    html += '<line class="base-line" x1="'+padL+'" y1="'+bottom+'" x2="'+(960-padR)+'" y2="'+bottom+'"></line>';
+    days.forEach(function(d,i){
+      var cx = padL + slot*i + slot/2;
+      var bh = bottom - y(d.cost);
+      var bx = cx - bw/2;
+      var fill = d.partial ? css('--accent-soft') : css('--accent');
+      var stroke = d.partial ? 'stroke="var(--accent)" stroke-width="1.5" stroke-dasharray=\"3 3\"' : '';
+      html += '<rect class="hit" data-i="'+i+'" x="'+bx+'" y="'+y(d.cost)+'" width="'+bw+'" height="'+Math.max(bh,2)+'" rx="5" fill="'+fill+'" '+stroke+'></rect>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(y(d.cost)-8)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" fill="var(--ink-2)">$'+d.cost.toFixed(0)+'</text>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(bottom+20)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+'</text>';
+    });
+    document.getElementById('dayBars').innerHTML = html;
+
+    var tip = document.getElementById('dayTip');
+    svg.querySelectorAll('.hit').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = days[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.label+(d.partial?' (parcial)':'')+'</b><br>Costo: <b>'+fmtUSD(d.cost)+'</b><br>Queries: '+fmtNum(d.q)+' &nbsp;·&nbsp; '+d.tib.toFixed(2)+' TiB';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= USER BARS =================
+  (function(){
+    var max = Math.max.apply(null, users.map(function(u){return u.cost;}));
+    var html='';
+    users.forEach(function(u){
+      var pct = (u.cost/max*100).toFixed(1);
+      html += '<div class="barrow">'+
+        '<div class="who">'+u.name+'<small>'+fmtNum(u.q)+' queries</small></div>'+
+        '<div class="track"><div class="fill" style="width:'+pct+'%; background:'+u.color+';"></div></div>'+
+        '<div class="amt">'+fmtUSD(u.cost)+'</div>'+
+      '</div>';
+    });
+    document.getElementById('userBars').innerHTML = html;
+  })();
+
+  // ================= TABLE BARS =================
+  (function(){
+    var max = Math.max.apply(null, tables.map(function(t){return t.cost;}));
+    var html='';
+    tables.forEach(function(t){
+      var pct = (t.cost/max*100).toFixed(1);
+      html += '<div class="barrow">'+
+        '<div class="who">'+t.name+'<small>'+fmtNum(t.q)+' q · '+t.users+' usr</small></div>'+
+        '<div class="track"><div class="fill" style="width:'+pct+'%; background:var(--accent);"></div></div>'+
+        '<div class="amt">'+fmtUSD(t.cost)+'</div>'+
+      '</div>';
+    });
+    html += '<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">+ 7 tablas adicionales · $4.56 combinados</div>';
+    document.getElementById('tableBars').innerHTML = html;
+  })();
+
+  // ================= CROSS TABLE =================
+  (function(){
+    var html='';
+    cross.forEach(function(r){
+      html += '<tr><td class="name"><span class="swatch" style="background:'+r[4]+'"></span>'+r[0]+'</td>'+
+        '<td class="mono">'+r[1]+'</td>'+
+        '<td class="num">'+fmtNum(r[2])+'</td>'+
+        '<td class="num">'+fmtUSD(r[3])+'</td></tr>';
+    });
+    document.getElementById('crossBody').innerHTML = html;
+  })();
+
+  // ================= TOP QUERIES TABLE =================
+  (function(){
+    var html='';
+    topQueries.forEach(function(r){
+      html += '<tr><td class="name">'+r[0]+'</td>'+
+        '<td class="mono">'+r[1]+'</td>'+
+        '<td class="num">'+r[2].toFixed(3)+'</td>'+
+        '<td class="num">'+fmtUSD(r[3])+'</td>'+
+        '<td class="qprev" title="'+r[4].replace(/"/g,'&quot;')+'">'+r[4]+'</td></tr>';
+    });
+    document.getElementById('queryBody').innerHTML = html;
+  })();
+
+})();
+</script>

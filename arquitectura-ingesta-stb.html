@@ -1,0 +1,373 @@
+<title>Arquitectura de Ingesta STB</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:82ch; margin-top:4px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+  .subtitle a{ color:var(--accent); }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:92ch; }
+
+  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 18px; }
+  .callout .ico{ font-size:19px; line-height:1.3; }
+  .callout p{ margin:0; font-size:13.5px; color:var(--ink-2); line-height:1.7; }
+  .callout b{ color:var(--ink); }
+
+  figure{ margin:18px 0 6px; }
+  figure svg{ width:100%; height:auto; display:block; }
+  figcaption{ font-size:12px; color:var(--muted); text-align:center; margin-top:10px; }
+  .diagram-box{ fill:var(--surface-2); stroke:var(--border); stroke-width:1.5; }
+  .diagram-box.accent{ stroke-width:2; }
+  .diagram-text{ fill:var(--ink); font-family:"IBM Plex Sans", sans-serif; }
+  .diagram-sub{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; }
+  .diagram-arrow{ stroke:var(--ink-2); stroke-width:1.6; fill:none; }
+  .diagram-label{ fill:var(--ink-2); font-family:"IBM Plex Mono", monospace; }
+
+  ol.steps{ margin:14px 0 0; padding-left:20px; font-size:13.5px; color:var(--ink-2); line-height:1.9; }
+  ol.steps li b{ color:var(--ink); }
+  ul.plain{ margin:8px 0 0; padding-left:20px; font-size:13px; color:var(--ink-2); line-height:1.8; }
+
+  .provider-block{ border:1px solid var(--border); border-radius:14px; padding:22px 24px; margin-top:18px; }
+  .provider-block h3{ margin:0 0 3px; font-size:17px; display:flex; align-items:center; gap:9px; }
+  .provider-block .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px; }
+  .swatch{ display:inline-block; width:9px; height:9px; border-radius:50%; }
+  .two-col{ display:grid; grid-template-columns:1.3fr 1fr; gap:22px; margin-top:6px; }
+  @media (max-width:820px){ .two-col{ grid-template-columns:1fr; } }
+  .side-box{ background:var(--surface-2); border-radius:12px; padding:14px 16px; }
+  .side-box .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; margin-bottom:6px; }
+  .side-box .v{ font-size:12.5px; color:var(--ink); line-height:1.6; }
+  .side-box + .side-box{ margin-top:10px; }
+  .badge{ display:inline-block; font:600 11px "IBM Plex Mono",monospace; padding:3px 9px; border-radius:100px; margin-top:2px; }
+  .badge.media{ background:rgba(201,133,0,.14); color:var(--warning); }
+  .badge.alta{ background:rgba(208,59,59,.12); color:var(--critical); }
+  .badge.mediaalta{ background:rgba(201,133,0,.14); color:var(--warning); }
+
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:720px; }
+  thead th{ text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.name{ color:var(--ink); font-weight:500; white-space:nowrap; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:96ch; margin:0 0 8px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>guía de implementación · complementa el estimado de costos</div>
+    <h1>Cómo configurar cada opción para recibir eventos de STB</h1>
+    <div class="subtitle">
+      Qué hay que instalar/configurar en <b>BigQuery, DynamoDB, ClickHouse y Aurora</b> para poder recibir los
+      eventos del Set-Top Box, y qué le toca al STB en cada caso. Complementa el reporte de costos
+      "BigQuery vs DynamoDB vs ClickHouse vs Aurora" — aquí el foco es <b>cómo se construye</b>, no cuánto cuesta.
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="ico">🔑</div>
+    <p>
+      <b>La idea más importante de todo este documento:</b> en ninguna de las 4 opciones el STB debe conectarse
+      directamente a la base de datos. Ni BigQuery, ni DynamoDB, ni ClickHouse, ni Aurora están pensados para que
+      millones de dispositivos les hablen directo — necesitan credenciales de nube (GCP/AWS) que jamás deberían
+      vivir en el firmware de un STB. Todas pasan primero por un <b>gateway de ingesta</b> propio. Por eso el
+      trabajo del lado del STB es <b>prácticamente el mismo sin importar cuál base se elija</b> — lo que cambia es
+      lo que se construye del gateway hacia adentro.
+    </p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 630 420" role="img" aria-label="El STB manda el evento por HTTPS o MQTT a un gateway de ingesta propio que autentica y agrupa los datos; desde ahí, cada backend usa su propia cola de buffer (Pub/Sub, IoT Core más Kinesis, Kafka, o RDS Proxy) antes de escribir en BigQuery, DynamoDB, ClickHouse o Aurora respectivamente.">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+        </marker>
+      </defs>
+
+      <!-- STB -->
+      <rect class="diagram-box" x="15" y="185" width="100" height="50" rx="8"></rect>
+      <text class="diagram-text" x="65" y="206" text-anchor="middle" font-size="13" font-weight="600">STB</text>
+      <text class="diagram-sub" x="65" y="221" text-anchor="middle" font-size="9">dispositivo</text>
+
+      <!-- STB -> Gateway -->
+      <line class="diagram-arrow" x1="115" y1="210" x2="143" y2="210" marker-end="url(#arrow)"></line>
+      <text class="diagram-label" x="129" y="180" text-anchor="middle" font-size="9">HTTPS/MQTT +</text>
+      <text class="diagram-label" x="129" y="192" text-anchor="middle" font-size="9">cert. de dispositivo</text>
+
+      <!-- Gateway (tall box) -->
+      <rect class="diagram-box accent" x="145" y="15" width="130" height="390" rx="10" style="stroke:var(--accent)"></rect>
+      <text class="diagram-text" x="210" y="200" text-anchor="middle" font-size="13" font-weight="600">Gateway de</text>
+      <text class="diagram-text" x="210" y="216" text-anchor="middle" font-size="13" font-weight="600">ingesta</text>
+      <text class="diagram-sub" x="210" y="234" text-anchor="middle" font-size="9">auth + batching</text>
+      <text class="diagram-sub" x="210" y="246" text-anchor="middle" font-size="9">+ reintentos</text>
+
+      <!-- Lane 1: BigQuery -->
+      <line class="diagram-arrow" x1="275" y1="55" x2="298" y2="55" marker-end="url(#arrow)"></line>
+      <rect class="diagram-box" x="300" y="33" width="120" height="44" rx="8"></rect>
+      <text class="diagram-text" x="360" y="59" text-anchor="middle" font-size="11">Pub/Sub</text>
+      <line class="diagram-arrow" x1="420" y1="55" x2="448" y2="55" marker-end="url(#arrow)"></line>
+      <text class="diagram-label" x="434" y="45" text-anchor="middle" font-size="8">Storage Write API</text>
+      <rect class="diagram-box accent" x="450" y="33" width="150" height="44" rx="8" style="stroke:var(--prov-bq)"></rect>
+      <text class="diagram-text" x="525" y="59" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--prov-bq)">BigQuery</text>
+
+      <!-- Lane 2: DynamoDB -->
+      <line class="diagram-arrow" x1="275" y1="150" x2="298" y2="150" marker-end="url(#arrow)"></line>
+      <rect class="diagram-box" x="300" y="122" width="120" height="56" rx="8"></rect>
+      <text class="diagram-text" x="360" y="147" text-anchor="middle" font-size="10.5">IoT Core +</text>
+      <text class="diagram-text" x="360" y="161" text-anchor="middle" font-size="10.5">Kinesis</text>
+      <line class="diagram-arrow" x1="420" y1="150" x2="448" y2="150" marker-end="url(#arrow)"></line>
+      <text class="diagram-label" x="434" y="140" text-anchor="middle" font-size="8">PutItem batch</text>
+      <rect class="diagram-box accent" x="450" y="128" width="150" height="44" rx="8" style="stroke:var(--prov-dynamo)"></rect>
+      <text class="diagram-text" x="525" y="154" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--prov-dynamo)">DynamoDB</text>
+
+      <!-- Lane 3: ClickHouse -->
+      <line class="diagram-arrow" x1="275" y1="245" x2="298" y2="245" marker-end="url(#arrow)"></line>
+      <rect class="diagram-box" x="300" y="223" width="120" height="44" rx="8"></rect>
+      <text class="diagram-text" x="360" y="249" text-anchor="middle" font-size="11">Kafka</text>
+      <line class="diagram-arrow" x1="420" y1="245" x2="448" y2="245" marker-end="url(#arrow)"></line>
+      <text class="diagram-label" x="434" y="235" text-anchor="middle" font-size="8">tabla motor Kafka</text>
+      <rect class="diagram-box accent" x="450" y="223" width="150" height="44" rx="8" style="stroke:var(--prov-ch)"></rect>
+      <text class="diagram-text" x="525" y="249" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--prov-ch)">ClickHouse</text>
+
+      <!-- Lane 4: Aurora -->
+      <line class="diagram-arrow" x1="275" y1="340" x2="298" y2="340" marker-end="url(#arrow)"></line>
+      <rect class="diagram-box" x="300" y="312" width="120" height="56" rx="8"></rect>
+      <text class="diagram-text" x="360" y="337" text-anchor="middle" font-size="10.5">RDS Proxy</text>
+      <text class="diagram-sub" x="360" y="351" text-anchor="middle" font-size="8">(pool de conexiones)</text>
+      <line class="diagram-arrow" x1="420" y1="340" x2="448" y2="340" marker-end="url(#arrow)"></line>
+      <text class="diagram-label" x="434" y="330" text-anchor="middle" font-size="8">INSERT batch</text>
+      <rect class="diagram-box accent" x="450" y="318" width="150" height="44" rx="8" style="stroke:var(--prov-aurora)"></rect>
+      <text class="diagram-text" x="525" y="344" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--prov-aurora)">Aurora</text>
+    </svg>
+    <figcaption>El STB solo le habla al gateway propio (una vez); de ahí hacia la derecha cambia según el backend elegido.</figcaption>
+  </figure>
+
+  <div class="card">
+    <div class="card-head"><h2>Qué hay que hacer en el STB</h2><div class="meta">aplica igual a las 4 opciones</div></div>
+    <div class="card-note">Esto es lo que responde directamente a "qué se configura en el STB" — y es prácticamente idéntico sin importar la base final.</div>
+    <ol class="steps">
+      <li><b>Un cliente HTTP(S) o MQTT ligero</b> en el firmware que arma el evento (JSON pequeño) y lo manda a <b>un solo endpoint fijo</b> — el gateway de ingesta. El STB nunca necesita saber si el destino final es BigQuery, DynamoDB, ClickHouse o Aurora.</li>
+      <li><b>Identidad de dispositivo:</b> cada STB necesita autenticarse. Lo más robusto es un certificado único grabado en fábrica/aprovisionamiento (mTLS); más simple (y más fácil de rotar) es un API key o token asociado al número de serie del equipo.</li>
+      <li><b>Cola local + reintentos:</b> si el STB pierde conectividad, debe poder guardar eventos en un buffer local (memoria/flash) y reintentar el envío cuando vuelva la red, para no perder datos.</li>
+      <li><b>Envío por lotes (batching):</b> agrupar eventos cada 30–60 segundos (o cada N eventos) en vez de mandar uno por uno — reduce drásticamente el número de conexiones, y beneficia a los 4 backends por igual.</li>
+      <li><b>Compresión</b> del lote (gzip) antes de enviarlo — a 75M eventos/día el tráfico de red agregado es real.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Configuración del lado del servidor, por proveedor</h2></div>
+    <div class="card-note">Lo que hay que instalar/crear en cada opción, más allá del STB.</div>
+
+    <!-- BigQuery -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
+      <p class="sub">Ya lo usan hoy — falta construir la capa de ingesta, la base en sí no cambia de forma</p>
+      <div class="two-col">
+        <div>
+          <ol class="steps" style="margin-top:0;">
+            <li>Crear la tabla <b>particionada por fecha</b> y <b>clusterizada</b> por los campos que más se van a filtrar (ej. <code>stb_id</code>, <code>event_name</code>) — la lección real de <code>KPIS.EventMKP</code>: sin esto, el costo de consultar se dispara.</li>
+            <li>Crear una <b>service account</b> con el rol mínimo (<code>roles/bigquery.dataEditor</code>), solo para el pipeline — nunca para los STB.</li>
+            <li>Habilitar la <b>Storage Write API</b> en el proyecto.</li>
+            <li>Levantar un endpoint receptor (Cloud Run o API Gateway) que publique a <b>Pub/Sub</b>.</li>
+            <li>Una suscripción (Dataflow o Cloud Function) consume de Pub/Sub y escribe a BigQuery en lotes vía Storage Write API.</li>
+          </ol>
+        </div>
+        <div>
+          <div class="side-box">
+            <div class="k">Piezas adicionales</div>
+            <div class="v">Cloud Run/API Gateway (receptor) · Pub/Sub (buffer) · Dataflow o Cloud Function (consumidor)</div>
+          </div>
+          <div class="side-box">
+            <div class="k">Complejidad</div>
+            <div class="v"><span class="badge media">Media</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DynamoDB -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</h3>
+      <p class="sub">La tabla es rápida de crear; lo que toma tiempo es adoptar el stack de IoT de AWS</p>
+      <div class="two-col">
+        <div>
+          <ol class="steps" style="margin-top:0;">
+            <li>Diseñar bien la <b>partition key + sort key</b> (ej. <code>stb_id</code> / <code>event_timestamp</code>) — es la decisión que más define cómo escala la tabla.</li>
+            <li>Modo de capacidad <b>On-Demand</b> para empezar, sin estimar RCU/WCU.</li>
+            <li>Configurar <b>TTL</b> si se quiere expirar eventos viejos sin costo de borrado manual.</li>
+            <li>Dar de alta cada STB en <b>AWS IoT Core</b> con su certificado X.509 único (el patrón nativo de AWS para flotas de dispositivos, en vez de un API Gateway genérico).</li>
+            <li>Configurar una regla de IoT Core que enrute los mensajes MQTT hacia DynamoDB (directo, o vía Kinesis si se quiere buffer y reintentos).</li>
+          </ol>
+        </div>
+        <div>
+          <div class="side-box">
+            <div class="k">Piezas adicionales</div>
+            <div class="v">AWS IoT Core (identidad + transporte) · Kinesis Data Streams (buffer, opcional) · Lambda (transformación)</div>
+          </div>
+          <div class="side-box">
+            <div class="k">Complejidad</div>
+            <div class="v"><span class="badge mediaalta">Media-alta</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ClickHouse -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
+      <p class="sub">Nada viene administrado — es la opción con más piezas que instalar y mantener tú mismo</p>
+      <div class="two-col">
+        <div>
+          <ol class="steps" style="margin-top:0;">
+            <li>Provisionar las VMs (ej. 3 nodos, 8 vCPU/32 GB) e instalar ClickHouse Server (paquete oficial o Docker).</li>
+            <li>Configurar <b>ClickHouse Keeper</b> (el reemplazo de ZooKeeper) para coordinar el clúster.</li>
+            <li>Crear la tabla con motor <code>ReplicatedMergeTree</code>, particionada por fecha, más una tabla <code>Distributed</code> encima para repartir queries entre nodos.</li>
+            <li>Levantar <b>Kafka</b> (o Redpanda) delante de ClickHouse, y crear una tabla con motor <code>Kafka</code> que auto-consume del tópico — el patrón estándar de ingesta masiva en ClickHouse.</li>
+            <li>Configurar usuarios/roles y TLS para las conexiones, y un balanceador de carga delante del clúster.</li>
+          </ol>
+        </div>
+        <div>
+          <div class="side-box">
+            <div class="k">Piezas adicionales</div>
+            <div class="v">Kafka/Redpanda (buffer + desacople) · ClickHouse Keeper (coordinación) · balanceador de carga</div>
+          </div>
+          <div class="side-box">
+            <div class="k">Complejidad</div>
+            <div class="v"><span class="badge alta">Alta</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aurora -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</h3>
+      <p class="sub">El motor es fácil de crear; diseñar bien para escritura masiva es lo que exige cuidado</p>
+      <div class="two-col">
+        <div>
+          <ol class="steps" style="margin-top:0;">
+            <li>Crear el cluster <b>Aurora Serverless v2</b> (PostgreSQL o MySQL-compatible), definir rango mínimo/máximo de ACU.</li>
+            <li>Diseñar el esquema con <b>pocos índices</b> — cada índice extra penaliza el insert, y aquí el insert es lo crítico.</li>
+            <li>Configurar <b>RDS Proxy</b> delante del cluster — sin esto, con millones de STB se agotan las conexiones casi de inmediato.</li>
+            <li>Levantar la capa de ingesta (API Gateway + Lambda, o un servicio en ECS) que agrupe escrituras antes de mandarlas al proxy.</li>
+            <li>Security Groups/VPC configurados para que solo ese servicio — nunca el STB — pueda conectarse a la base.</li>
+          </ol>
+        </div>
+        <div>
+          <div class="side-box">
+            <div class="k">Piezas adicionales</div>
+            <div class="v">RDS Proxy (obligatorio a esta escala) · API Gateway + Lambda o ECS (capa de ingesta)</div>
+          </div>
+          <div class="side-box">
+            <div class="k">Complejidad</div>
+            <div class="v"><span class="badge mediaalta">Media-alta</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Resumen comparativo</h2></div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th>Proveedor</th><th>Quién administra la base</th><th>Pieza extra obligatoria</th><th>Identidad del STB</th><th>Complejidad de puesta en marcha</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span> BigQuery</td>
+            <td>Google (serverless)</td>
+            <td>Pub/Sub + consumidor</td>
+            <td>API key/cert. en el gateway propio</td>
+            <td><span class="badge media">Media</span></td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-dynamo)"></span> DynamoDB</td>
+            <td>AWS (administrada)</td>
+            <td>AWS IoT Core</td>
+            <td>Certificado X.509 por dispositivo (nativo de IoT Core)</td>
+            <td><span class="badge mediaalta">Media-alta</span></td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-ch)"></span> ClickHouse</td>
+            <td><b>Tu equipo</b> (autoalojado)</td>
+            <td>Kafka/Redpanda + ClickHouse Keeper</td>
+            <td>API key/cert. en el gateway propio</td>
+            <td><span class="badge alta">Alta</span></td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span> Aurora</td>
+            <td>AWS (administrada)</td>
+            <td>RDS Proxy</td>
+            <td>API key/cert. en el gateway propio</td>
+            <td><span class="badge mediaalta">Media-alta</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-note" style="margin-top:14px;">"Complejidad de puesta en marcha" es una comparación relativa entre las 4, no un número de semanas — depende del tamaño del equipo y de cuánto de esto ya exista. Antes de comprometerse con una opción, vale la pena un piloto chico (unos cientos de STB reales) para validar que el diseño aguanta antes de escalar a los 4M.</div>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Notas:</b> esta guía describe patrones de arquitectura estándar y ampliamente documentados
+      para cada plataforma (no son inventados para este caso), pero no reemplazan una prueba de carga real con el
+      volumen y payload exactos que definan los devs de STB. Los nombres de componentes son los servicios nativos
+      de cada nube (GCP para BigQuery, AWS para DynamoDB/Aurora); para ClickHouse autoalojado, la elección de nube
+      es libre. El endpoint/gateway de ingesta es responsabilidad propia en los 4 casos — ninguna de las 4
+      plataformas lo provee por sí sola.
+    </p>
+    <div class="chips">
+      <span class="chip">guía de implementación</span>
+      <span class="chip">complementa: BigQuery vs DynamoDB vs ClickHouse vs Aurora</span>
+    </div>
+  </footer>
+</div>

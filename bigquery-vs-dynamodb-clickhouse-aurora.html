@@ -1,0 +1,441 @@
+<title>BigQuery vs DynamoDB vs ClickHouse vs Aurora</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --grid:#E3E8ED; --baseline:#C7D0D9;
+    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --grid:#212B36; --baseline:#2C3948;
+      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --grid:#212B36; --baseline:#2C3948;
+    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{
+    font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  h1.section{ font-size:24px; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:80ch; margin-top:4px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:24px 0 20px; }
+  .tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+  }
+  .tile .label{ font-size:12.5px; color:var(--muted); font-weight:500; }
+  .tile .value{ font:600 26px/1.05 "IBM Plex Mono", monospace; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .tile .sub{ font-size:12.5px; color:var(--ink-2); }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px;
+  }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:92ch; }
+
+  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:14px 16px; margin-top:14px; }
+  .callout.warn{ border-color:var(--critical); background:rgba(208,59,59,.06); }
+  .callout .ico{ font-size:17px; line-height:1.3; }
+  .callout p{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.65; }
+  .callout b{ color:var(--ink); }
+
+  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2); font-weight:500; }
+  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  .barlist{ display:flex; flex-direction:column; gap:14px; margin-top:16px; }
+  .barrow{ display:grid; grid-template-columns:170px 1fr 120px; align-items:center; gap:10px; }
+  .barrow .who{ font-size:13px; font-weight:500; color:var(--ink); display:flex; align-items:center; gap:7px; }
+  .barrow .who small{ display:block; font:400 11px "IBM Plex Mono",monospace; color:var(--muted); font-weight:400; }
+  .track{ background:var(--surface-2); border-radius:6px; height:22px; position:relative; overflow:hidden; }
+  .fill{ position:absolute; inset:0 auto 0 0; border-radius:6px; }
+  .barrow .amt{ text-align:right; font:600 13px "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+  thead th{ text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+  .swatch{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; }
+  .tag{ font:500 10.5px "IBM Plex Mono",monospace; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); padding:2px 6px; border-radius:100px; margin-left:6px; }
+
+  .qual-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:16px; }
+  .qual-card{ border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:var(--surface-2); }
+  .qual-card h3{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .qual-card ul{ margin:0; padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.7; }
+
+  .provider-block{ border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin-top:16px; }
+  .provider-block h3{ margin:0 0 4px; font-size:16px; display:flex; align-items:center; gap:9px; }
+  .provider-block .sub{ font-size:12px; color:var(--muted); margin:0 0 14px; }
+  .info-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:6px; }
+  .info-item{ background:var(--surface-2); border-radius:10px; padding:10px 12px; }
+  .info-item .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; margin-bottom:3px; }
+  .info-item .v{ font-size:12.5px; color:var(--ink); line-height:1.5; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:96ch; margin:0 0 8px; }
+  footer a{ color:var(--accent); }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>estimado · no es facturación real</div>
+    <h1>Eventos de Set-Top Box: BigQuery vs DynamoDB vs ClickHouse vs Aurora</h1>
+    <div class="subtitle">
+      Proyección de volumen y costo si se agregan eventos de STB al pipeline, con el volumen recalculado a
+      <b>75 millones de eventos diarios</b>. Se comparan BigQuery, DynamoDB, <b>ClickHouse autoalojado</b>
+      (ClickHouse® open source y ClickHouse Cloud son productos distintos — el primero es software libre que tú
+      hospedas, el segundo es el servicio administrado de pago; aquí se omite Cloud y se usa el costo de
+      infraestructura del autoalojado) y <b>Amazon Aurora</b> (Serverless v2). Todos los precios son de lista
+      (on-demand), sin descuentos por compromiso — ver metodología al final.
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:20px;">
+    <div class="ico">🔁</div>
+    <p><b>Actualización:</b> el volumen base cambió de ~11.4M a <b>75M eventos/día</b> (6.56× más), ClickHouse
+    ahora usa el costo de <b>autoalojarlo</b> en vez de ClickHouse Cloud, y se agregó <b>Amazon Aurora</b> como
+    cuarta opción. Todas las cifras de abajo ya reflejan estos cambios.</p>
+  </div>
+
+  <div class="stats">
+    <div class="tile">
+      <div class="label">Volumen recalculado</div>
+      <div class="value">75.0M</div>
+      <div class="sub">eventos/día (dato actualizado, reemplaza el cálculo anterior)</div>
+    </div>
+    <div class="tile">
+      <div class="label">Proyección semanal</div>
+      <div class="value">525.0M</div>
+      <div class="sub">eventos/semana (75M × 7)</div>
+    </div>
+    <div class="tile">
+      <div class="label">Proyección mensual</div>
+      <div class="value">2,250M</div>
+      <div class="sub">≈ 2.25 mil millones de eventos/mes</div>
+    </div>
+    <div class="tile">
+      <div class="label">vs. el volumen actual de KPIS.EventMKP</div>
+      <div class="value">~10.7×</div>
+      <div class="sub">EventMKP hoy: ~49M eventos/semana promedio — STB sería 10 veces más grande</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Supuestos del estimado</h2>
+      <div class="meta">ajustables</div>
+    </div>
+    <div class="card-note">Tres variables que más mueven el resultado — cámbialas si tienes datos más precisos del equipo de STB.</div>
+    <div class="qual-grid">
+      <div class="qual-card">
+        <h3>📏 Tamaño del evento</h3>
+        <ul>
+          <li><b>Ligero</b> 200 B (beacon simple)</li>
+          <li><b>Medio</b> 400 B — ancla real: tamaño promedio de fila en <code>KPIS.EventMKP</code> hoy (385 B)</li>
+          <li><b>Pesado</b> 800 B (payload con metadata de dispositivo/sesión)</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3>🗓️ Retención</h3>
+        <ul>
+          <li>Se asume que se acumula <b>sin borrar</b> (igual que EventMKP/Iptv hoy)</li>
+          <li>El costo de almacenamiento se muestra en mes 1, mes 6 y mes 12 para ver la trayectoria</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3>👤 STB por cliente</h3>
+        <ul>
+          <li>Se asume <b>1 STB por cliente</b> — si hay clientes con 2+ STB, el volumen real sería mayor</li>
+          <li>4M clientes es la base para la proyección "a escala completa"</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Volumen de datos proyectado</h2>
+      <div class="meta">3 escenarios de tamaño de evento</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Escenario</th><th class="num">GB / día</th><th class="num">GB / semana</th><th class="num">GB / mes</th><th class="num">TiB / año</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Ligero (200 B)</td><td class="num">15.0</td><td class="num">105.0</td><td class="num">456.6</td><td class="num">5.35</td></tr>
+          <tr><td class="name">Medio (400 B) <span class="tag">ancla EventMKP</span></td><td class="num">30.0</td><td class="num">210.0</td><td class="num">913.2</td><td class="num">10.69</td></tr>
+          <tr><td class="name">Pesado (800 B)</td><td class="num">60.0</td><td class="num">420.0</td><td class="num">1,826.4</td><td class="num">21.39</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Costo mensual estimado — escenario medio, mes 12</h2>
+      <div class="meta">400 B/evento · 10,958 GB acumulados</div>
+    </div>
+    <div class="card-note">
+      Ordenado de menor a mayor entre las opciones "predecibles". BigQuery mal diseñada NO está en esta escala —
+      es un caso aparte, ver la tabla de detalle abajo.
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--prov-ch)"></i>ClickHouse (autoalojado)</span>
+      <span><i style="background:var(--prov-bq)"></i>BigQuery</span>
+      <span><i style="background:var(--prov-aurora)"></i>Aurora</span>
+      <span><i style="background:var(--prov-dynamo)"></i>DynamoDB</span>
+    </div>
+    <div class="barlist" id="costBars"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Desglose detallado por proveedor</h2>
+      <div class="meta">licencia · dónde vive el almacenamiento · cómputo · mes 1/6/12</div>
+    </div>
+    <div class="card-note">Escenario medio (400 B/evento, 913.2 GB/mes, 10,958 GB acumulados a mes 12) salvo donde se indique otro.</div>
+
+    <!-- BigQuery -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
+      <p class="sub">Data warehouse serverless de Google Cloud</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — servicio administrado, no hay licencia separada; se paga por uso</div></div>
+        <div class="info-item"><div class="k">Dónde vive el almacenamiento</div><div class="v">Storage columnar propio de Google, distribuido y replicado automáticamente — no es un bucket que tú administras ni eliges</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">Serverless: pagas por bytes escaneados en cada query, no por un clúster encendido</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Mes 1</th><th class="num">Mes 6</th><th class="num">Mes 12</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td><td class="num">$0</td><td class="num">$0</td></tr>
+            <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo)</td><td class="num">$18.26</td><td class="num">$82.19</td><td class="num">$136.98</td></tr>
+            <tr><td class="name">Queries ($6.25/TiB escaneado, bien diseñada)</td><td class="num">~$1,970</td><td class="num">~$1,970</td><td class="num">~$1,970–2,950</td></tr>
+            <tr><td class="name">Backup / recuperación</td><td class="num" colspan="3" style="text-align:left;">time travel de 7 días incluido sin costo extra</td></tr>
+            <tr class="total"><td class="name">Total aproximado</td><td class="num">~$1,988</td><td class="num">~$2,052</td><td class="num">~$2,107–3,087</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DynamoDB -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</h3>
+      <p class="sub">Base de datos NoSQL clave-valor administrada de AWS</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — servicio administrado de AWS</div></div>
+        <div class="info-item"><div class="k">Dónde vive el almacenamiento</div><div class="v">Storage SSD propio y distribuido de DynamoDB (no es S3, es una capa exclusiva del servicio)</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">On-Demand: pagas por unidad de lectura/escritura (WRU/RRU), sin clúster que administrar</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Mes 1</th><th class="num">Mes 6</th><th class="num">Mes 12</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Escritura ($0.625/millón WRU, evento ≤1KB = 1 WRU)</td><td class="num">$1,406.25</td><td class="num">$1,406.25</td><td class="num">$1,406.25</td></tr>
+            <tr><td class="name">Almacenamiento Standard ($0.25/GB-mes)</td><td class="num">$228.30</td><td class="num">$1,369.80</td><td class="num">$2,739.60</td></tr>
+            <tr><td class="name">Lectura / analítica</td><td class="num" colspan="3" style="text-align:left;">no incluida — DynamoDB no está pensado para scans analíticos; requeriría exportar a otro motor (ej. S3 + Athena) o replicar a BigQuery de todos modos</td></tr>
+            <tr><td class="name">Backup (PITR continuo)</td><td class="num" colspan="3" style="text-align:left;">tiene costo aparte por GB respaldado, no incluido en este estimado</td></tr>
+            <tr class="total"><td class="name">Total aproximado (sin analítica)</td><td class="num">$1,634.55</td><td class="num">$2,776.05</td><td class="num">$4,145.85</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ClickHouse -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
+      <p class="sub">Motor OLAP open source — tú decides dónde correrlo</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — Apache 2.0, software libre, sin cuota de proveedor</div></div>
+        <div class="info-item"><div class="k">Dónde vive el almacenamiento</div><div class="v">Disco local/EBS (SSD) del servidor que rentas; opcionalmente se puede escalonar el dato frío hacia un bucket S3/GCS más barato (tiered storage)</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">VM(s) que tú provisionas y mantienes encendidas — no es serverless, pagas la infra exista o no tráfico</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Mes 1</th><th class="num">Mes 6</th><th class="num">Mes 12</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Infraestructura (clúster HA 3 nodos, 8 vCPU/32 GB c/u en AWS)</td><td class="num">~$870–890</td><td class="num">~$870–890</td><td class="num">~$870–890</td></tr>
+            <tr><td class="name">Software / licencia</td><td class="num" colspan="3" style="text-align:left;">$0 — el costo de arriba ya incluye cómputo + disco + red</td></tr>
+            <tr><td class="name">Backup</td><td class="num" colspan="3" style="text-align:left;">tú lo configuras; típicamente a un bucket S3 aparte (~$0.023/GB-mes), no incluido arriba</td></tr>
+            <tr><td class="name">Operación</td><td class="num" colspan="3" style="text-align:left;">requiere alguien del equipo (parcheo, escalado, alta disponibilidad) — costo real, no está en dólares aquí</td></tr>
+            <tr class="total"><td class="name">Total aproximado</td><td class="num">~$870–890</td><td class="num">~$870–890</td><td class="num">~$870–890</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Aurora -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</h3>
+      <p class="sub">Base de datos relacional (MySQL/PostgreSQL-compatible) administrada de AWS — no es el tipo de motor que sugirieron los devs, se agrega para comparar contra una opción relacional clásica</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — motor propio de AWS, sin licencia comercial de Oracle/MySQL de por medio</div></div>
+        <div class="info-item"><div class="k">Dónde vive el almacenamiento</div><div class="v">Capa de almacenamiento distribuido propia de Aurora, replicada automáticamente en 3 zonas de disponibilidad (no es EBS ni S3 directamente)</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">Aurora Serverless v2 (auto-escalable por ACU) en modo I/O-Optimized — evita cobrar cada operación de I/O por separado, más predecible para este volumen de escritura</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Mes 1</th><th class="num">Mes 6</th><th class="num">Mes 12</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Cómputo (Serverless v2, ~8 ACU sostenidos × $0.156/ACU-hr)</td><td class="num">$911.04</td><td class="num">$911.04</td><td class="num">$911.04</td></tr>
+            <tr><td class="name">Almacenamiento I/O-Optimized ($0.225/GB-mes)</td><td class="num">$205.47</td><td class="num">$1,232.82</td><td class="num">$2,465.64</td></tr>
+            <tr><td class="name">I/O por request</td><td class="num" colspan="3" style="text-align:left;">$0 — incluido en el modo I/O-Optimized (evita el cargo de $0.20/millón requests del modo Standard)</td></tr>
+            <tr><td class="name">Backup</td><td class="num" colspan="3" style="text-align:left;">snapshots automáticos dentro del período de retención incluidos; retención extendida tiene costo aparte</td></tr>
+            <tr class="total"><td class="name">Total aproximado</td><td class="num">$1,116.51</td><td class="num">$2,143.86</td><td class="num">$3,376.68</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Consideraciones más allá del costo</h2>
+    </div>
+    <div class="qual-grid">
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
+        <ul>
+          <li>Ya es la herramienta que usan hoy — sin curva de aprendizaje ni proveedor nuevo</li>
+          <li>Exige particionar/clusterizar bien desde el día 1 (lección de EventMKP)</li>
+          <li>Excelente para analítica ad-hoc y cruces con las tablas que ya existen (KPIS.*)</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</h3>
+        <ul>
+          <li>Muy bueno para escritura masiva de baja latencia (lo que piden los devs)</li>
+          <li>No es un motor analítico — para reportes/BI necesitarías exportar (ej. a S3 + Athena) o hacer streaming a BigQuery de todos modos</li>
+          <li>Costo de almacenamiento por GB es ~25× más caro que BigQuery a largo plazo</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
+        <ul>
+          <li>Pensado justo para este caso: ingesta masiva + analítica rápida en la misma tabla</li>
+          <li>Software libre (Apache 2.0) — el costo es solo la infraestructura donde corre, sin cuota de proveedor</li>
+          <li>A cambio, exige alguien del equipo que lo opere (parcheo, escalado, respaldo, alta disponibilidad) — costo real pero no está en dólares en esta tabla</li>
+          <li>ClickHouse Cloud (la versión administrada) existe como alternativa si prefieren no operarlo, a cambio de una cuota mensual más alta</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</h3>
+        <ul>
+          <li>Es una base de datos <b>relacional</b> (transaccional) — no fue diseñada para el patrón de "firehose" de eventos que describen los devs, a diferencia de ClickHouse/DynamoDB/BigQuery</li>
+          <li>Tiene sentido si además necesitas transacciones ACID clásicas (ej. cuentas, saldos) en la misma base</li>
+          <li>Serverless v2 escala solo, pero dimensionar bien los ACU para 75M escrituras/día requiere pruebas de carga reales — el número aquí es una referencia, no una garantía</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Metodología:</b> volumen base = <b>75,000,000 eventos/día</b> (dato recalculado
+      por el equipo, reemplaza la extrapolación anterior de 3M/150 mil STB). Tamaño de evento en 3 escenarios;
+      "medio" ancla en el tamaño promedio real de fila de <code>KPIS.EventMKP</code>
+      (1,162,372,610,843 bytes ÷ 3,020,679,692 filas ≈ 385 B). BigQuery: almacenamiento $0.02/GB activo (90 días) +
+      $0.01/GB largo plazo, ingesta vía Storage Write API $0.025/GiB con 2 TiB/mes gratis, queries a $6.25/TiB
+      on-demand (mismo supuesto validado contra factura real en el resto de esta carpeta); el rango "bien/mal
+      diseñada" escala el caso real de KPIS.EventMKP (documentado en <code>21_impacto_eventmkp_jul_ago.sql</code>)
+      por la razón entre el nuevo volumen diario y el usado en el estimado anterior (×6.56). DynamoDB On-Demand,
+      tabla Standard, región US East: $0.625/millón WRU, $0.25/GB-mes de almacenamiento (evento ≤1KB = 1 WRU).
+      <b>ClickHouse® es software open source (Apache 2.0) que se autoaloja, distinto de ClickHouse Cloud (el
+      servicio administrado de pago)</b> — aquí se usa el costo de infraestructura de un clúster autoalojado de
+      alta disponibilidad (3 nodos, 8 vCPU/32 GB cada uno en AWS), ~$870–890/mes todo incluido (cómputo +
+      almacenamiento + red), referencia dimensionada para cargas de decenas de GB/día como las de este estimado;
+      no incluye el tiempo de operación del equipo. Amazon Aurora: Serverless v2 en modo I/O-Optimized, $0.156 por
+      ACU-hora (1 ACU ≈ 2 GB de RAM + CPU/red proporcional) — se asumen 8 ACU sostenidos como referencia de
+      dimensionamiento para el volumen de escritura estimado, sin haber corrido pruebas de carga reales;
+      almacenamiento I/O-Optimized $0.225/GB-mes (evita el cargo de $0.20/millón de requests del modo Standard,
+      más impredecible para un flujo de escritura tan grande). Precios de lista consultados el 19 de agosto de
+      2026 — verifica contra las páginas oficiales antes de decidir, y pide cotización con posibles descuentos
+      por compromiso/volumen.
+    </p>
+    <p>
+      Fuentes: <a href="https://cloud.google.com/bigquery/pricing" target="_blank" rel="noopener">Google BigQuery pricing</a> ·
+      <a href="https://aws.amazon.com/dynamodb/pricing/" target="_blank" rel="noopener">AWS DynamoDB pricing</a> ·
+      <a href="https://www.tinybird.co/blog/self-hosted-clickhouse-cost" target="_blank" rel="noopener">Costo de autoalojar ClickHouse (Tinybird)</a> ·
+      <a href="https://clickhouse.com/pricing" target="_blank" rel="noopener">ClickHouse Cloud pricing (referencia, no usado aquí)</a> ·
+      <a href="https://aws.amazon.com/rds/aurora/pricing/" target="_blank" rel="noopener">Amazon Aurora pricing</a>.
+    </p>
+    <div class="chips">
+      <span class="chip">estimado, no factura</span>
+      <span class="chip">precios de lista (ago 2026)</span>
+      <span class="chip">75M eventos/día</span>
+      <span class="chip">ClickHouse autoalojado</span>
+      <span class="chip">Aurora Serverless v2</span>
+      <span class="chip">ancla: KPIS.EventMKP</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
+
+  var bars = [
+    {name:'ClickHouse — autoalojado', sub:'clúster HA 3 nodos, infra todo incluido', value:880, color:'var(--prov-ch)'},
+    {name:'BigQuery — bien diseñada', sub:'almacenamiento + queries optimizadas (punto medio)', value:2596.98, color:'var(--prov-bq)'},
+    {name:'Aurora Serverless v2', sub:'cómputo I/O-Optimized + almacenamiento', value:3376.68, color:'var(--prov-aurora)'},
+    {name:'DynamoDB On-Demand', sub:'escritura + almacenamiento (sin analítica)', value:4145.85, color:'var(--prov-dynamo)'}
+  ];
+
+  (function(){
+    var max = Math.max.apply(null, bars.map(function(b){return b.value;}));
+    var html='';
+    bars.forEach(function(b){
+      var pct = (b.value/max*100).toFixed(1);
+      html += '<div class="barrow">'+
+        '<div class="who">'+b.name+'<small>'+b.sub+'</small></div>'+
+        '<div class="track"><div class="fill" style="width:'+pct+'%; background:'+b.color+';"></div></div>'+
+        '<div class="amt">'+fmtUSD(b.value)+'/mes</div>'+
+      '</div>';
+    });
+    document.getElementById('costBars').innerHTML = html;
+  })();
+})();
+</script>

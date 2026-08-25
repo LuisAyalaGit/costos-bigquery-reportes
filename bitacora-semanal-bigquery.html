@@ -1,0 +1,576 @@
+<title>Bitácora Semanal BigQuery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --grid:#E3E8ED; --baseline:#C7D0D9;
+    --series-query:#2a78d6; --series-storage:#1baf7a; --series-events:#eb6834;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --grid:#212B36; --baseline:#2C3948;
+      --series-query:#5b9eec; --series-storage:#37c290; --series-events:#e8804c;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --grid:#212B36; --baseline:#2C3948;
+    --series-query:#5b9eec; --series-storage:#37c290; --series-events:#e8804c;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{
+    font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 34px/1.15 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  h1.section{ font-size:24px; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.6; max-width:76ch; margin-top:2px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:24px 0 20px; }
+  .tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+  }
+  .tile .label{ font-size:12.5px; color:var(--muted); font-weight:500; }
+  .tile .value{ font:600 28px/1.05 "IBM Plex Mono", monospace; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .tile .sub{ font-size:12.5px; color:var(--ink-2); }
+  .pill{ display:inline-flex; align-items:center; gap:4px; font:600 11.5px/1 "IBM Plex Mono", monospace; padding:3px 7px; border-radius:100px; }
+  .pill.down{ background:rgba(12,163,12,.12); color:var(--good); }
+  .pill.up{ background:rgba(208,59,59,.12); color:var(--critical); }
+  .pill.flat{ background:var(--accent-soft); color:var(--accent-ink); }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px;
+  }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:90ch; }
+
+  .callout{
+    display:flex; gap:12px; align-items:flex-start; background:var(--surface-2);
+    border:1px dashed var(--border); border-radius:12px; padding:14px 16px; margin-top:14px;
+  }
+  .callout .ico{ font-size:17px; line-height:1.3; }
+  .callout p{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.6; }
+
+  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2); font-weight:500; }
+  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .legend i.dashed{ background:transparent; border:1.5px dashed var(--series-query); }
+
+  .chart-wrap{ position:relative; }
+  svg text{ font-family:"IBM Plex Sans", sans-serif; }
+  .axis-label{ font-size:11px; fill:var(--muted); }
+  .grid-line{ stroke:var(--grid); stroke-width:1; }
+  .base-line{ stroke:var(--baseline); stroke-width:1; }
+  .tooltip{
+    position:absolute; pointer-events:none; background:#FFFFFF; color:#101820;
+    font:500 12px/1.5 "IBM Plex Mono", monospace; padding:8px 10px; border-radius:8px;
+    border:1px solid #DCE3EA; box-shadow:var(--shadow); opacity:0; transform:translate(-50%,-112%);
+    transition:opacity .1s; white-space:nowrap; z-index:5;
+  }
+  .tooltip b{ color:#0B0F14; }
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:860px){ .grid2{ grid-template-columns:1fr; } }
+
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+  thead th{
+    text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+  td.mono{ font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--muted); }
+  .tag{ font:500 10.5px "IBM Plex Mono",monospace; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); padding:2px 6px; border-radius:100px; margin-left:6px; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.7; max-width:92ch; margin:0 0 8px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>totalplay-8726e &nbsp;·&nbsp; 1 jul – 19 ago 2026</div>
+    <h1>Bitácora semanal de costos BigQuery</h1>
+    <div class="subtitle">
+      Dos vistas del mismo rango: <b>costo de queries por semana</b> (con historial diario completo) y
+      <b>costo de almacenamiento</b> (solo disponible como foto mensual — BigQuery no guarda su historial).
+      Generado el 19 de agosto de 2026.
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="tile">
+      <div class="label">Costo de queries acumulado · 1 jul al 19 ago</div>
+      <div class="value">$34,434</div>
+      <div class="sub">43,260 queries · 5,509.5 TiB escaneados</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana más cara (queries)</div>
+      <div class="value">$7,529</div>
+      <div class="sub">semana del 13 jul (completa)</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana más barata (completa)</div>
+      <div class="value">$910</div>
+      <div class="sub"><span class="pill down">▼ 87.9%</span> vs. la semana más cara · 03 ago</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana en curso (17–19 ago, 3 días)</div>
+      <div class="value">$583</div>
+      <div class="sub">en curso · cierra el 23 ago</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Costo por semana — Queries</h2>
+      <div class="meta">nivel=semana · JOBS_BY_PROJECT</div>
+    </div>
+    <div class="card-note">
+      Semana = lunes a domingo. Las barras con borde punteado son semanas incompletas (menos de 7 días de datos).
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--series-query)"></i>Semana completa</span>
+      <span><i class="dashed"></i>Semana incompleta</span>
+    </div>
+    <div class="chart-wrap">
+      <svg id="weekChart" viewBox="0 0 1040 340" width="100%" style="overflow:visible; margin-top:12px;">
+        <g id="weekGrid"></g>
+        <g id="weekBars"></g>
+      </svg>
+      <div class="tooltip" id="weekTip"></div>
+    </div>
+  </div>
+
+  <div class="masthead" style="margin-top:8px;">
+    <div class="eyebrow"><span class="dot" style="background:var(--series-events)"></span>eventos</div>
+    <h1 class="section">Eventos que llegan por semana</h1>
+    <div class="subtitle">
+      Volumen de eventos ingeridos en <b>KPIS.EventMKP</b>, la tabla de eventos de marketing (la misma que tuvo
+      el cambio de eficiencia el 31 de julio). Sirve para confirmar que la baja de costo fue por eficiencia y
+      no porque haya llegado menos información.
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="tile">
+      <div class="label">Eventos acumulados · 1 jul al 19 ago</div>
+      <div class="value">341.3M</div>
+      <div class="sub">tipos de evento: 10-11 distintos por semana</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana con más eventos (completa)</div>
+      <div class="value">55.3M</div>
+      <div class="sub">semana del 13 jul · 2.04M usuarios distintos</div>
+    </div>
+    <div class="tile">
+      <div class="label">Promedio semanal (semanas completas)</div>
+      <div class="value">47.3M</div>
+      <div class="sub">~1.88M usuarios distintos/semana</div>
+    </div>
+    <div class="tile">
+      <div class="label">Volumen vs. costo</div>
+      <div class="value" style="font-size:20px;">estable</div>
+      <div class="sub">eventos casi sin cambio, pero el costo de queries cayó 98.9% desde el 31 jul</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Total de eventos por semana</h2>
+      <div class="meta">KPIS.EventMKP</div>
+    </div>
+    <div class="card-note">Semana = lunes a domingo. La última barra (17 ago) está en curso, solo 3 días de datos.</div>
+    <div class="chart-wrap">
+      <svg id="eventsChart" viewBox="0 0 1040 340" width="100%" style="overflow:visible; margin-top:12px;">
+        <g id="eventsGrid"></g>
+        <g id="eventsBars"></g>
+      </svg>
+      <div class="tooltip" id="eventsTip"></div>
+    </div>
+    <div class="callout">
+      <div class="ico">💡</div>
+      <p>El volumen de eventos se mantuvo en el mismo rango (43–55M/semana) durante todo julio y agosto, mientras
+      que el costo de queries sobre esta misma tabla cayó de ~$6,500/semana a ~$70/semana desde el 31 de julio
+      (ver el reporte "Impacto EventMKP"). Confirma que la baja fue por eficiencia de la tabla, no por menos datos entrando.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Detalle semanal de eventos</h2>
+      <div class="meta">KPIS.EventMKP</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th>Semana</th><th class="num">Total eventos</th><th class="num">Tipos de evento</th><th class="num">Usuarios distintos</th></tr>
+        </thead>
+        <tbody id="eventsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="masthead" style="margin-top:8px;">
+    <div class="eyebrow"><span class="dot" style="background:var(--series-storage)"></span>almacenamiento</div>
+    <h1 class="section">Costo y volumen de almacenamiento</h1>
+    <div class="subtitle">
+      A diferencia de las queries (que sí tienen historial diario en <code>JOBS_BY_PROJECT</code>),
+      el almacenamiento en BigQuery solo se puede leer como <b>estado actual</b>
+      (<code>INFORMATION_SCHEMA.TABLE_STORAGE</code> no guarda historial). Por eso no existe un
+      "costo de almacenamiento por semana" real — lo que hay son <b>fotos mensuales</b>, tomadas por el
+      proceso programado el día 2 de cada mes. Julio y agosto ya tienen su foto.
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="tile">
+      <div class="label">Almacenado · foto de julio (30 jul)</div>
+      <div class="value" style="color:var(--series-storage)">8.22 <span style="font-size:15px;color:var(--muted)">TiB</span></div>
+      <div class="sub">$119.18 estimado/mes</div>
+    </div>
+    <div class="tile">
+      <div class="label">Almacenado · foto de agosto (02 ago)</div>
+      <div class="value" style="color:var(--series-storage)">8.26 <span style="font-size:15px;color:var(--muted)">TiB</span></div>
+      <div class="sub">$119.65 estimado/mes</div>
+    </div>
+    <div class="tile">
+      <div class="label">Variación jul → ago</div>
+      <div class="value">+0.49%</div>
+      <div class="sub"><span class="pill flat">≈ estable</span> +0.040 TiB · +$0.47</div>
+    </div>
+    <div class="tile">
+      <div class="label">Costo mensual de almacenamiento</div>
+      <div class="value">~$120</div>
+      <div class="sub">vs. $34,434 de queries en el mismo rango — el almacenamiento es marginal</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Almacenamiento por semana</h2>
+      <div class="meta">TABLE_STORAGE_TIMELINE_BY_PROJECT</div>
+    </div>
+    <div class="card-note">
+      Sí es posible ver almacenamiento por semana: BigQuery guarda un historial (<code>TABLE_STORAGE_TIMELINE_BY_PROJECT</code>),
+      a diferencia del estado único que usa la vista <code>TABLE_STORAGE</code>. Esta línea usa una <b>muestra estable
+      de 71 tablas</b> (de las 155 que existen hoy) que tienen historial completo las 8 semanas — así la comparación
+      es pareja semana a semana, sin el sesgo de que BigQuery empieza a trackear tablas nuevas en momentos distintos.
+      Por eso el TiB de esta muestra es menor al total real del proyecto (~9 TiB hoy); para el total completo usa
+      las fotos oficiales de julio/agosto de arriba.
+    </div>
+    <div class="chart-wrap">
+      <svg id="storageChart" viewBox="0 0 1040 260" width="100%" style="overflow:visible; margin-top:12px;">
+        <g id="storageGrid"></g>
+        <g id="storageBars"></g>
+      </svg>
+      <div class="tooltip" id="storageTip"></div>
+    </div>
+    <div class="callout">
+      <div class="ico">💡</div>
+      <p>Esta muestra creció <b>+10.3%</b> en 7 semanas (3.72 → 4.10 TiB), un ritmo constante de ~1.5%/semana — consistente
+      con el crecimiento natural del histórico de eventos. El costo de almacenamiento en general sigue siendo marginal
+      frente al de queries: ~$120/mes vs. miles de dólares en queries en las semanas más caras.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Detalle semanal de almacenamiento</h2>
+      <div class="meta">muestra estable · 71 tablas</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th>Semana</th><th class="num">TiB</th><th class="num">Costo estimado</th><th class="num">Variación vs. semana anterior</th></tr>
+        </thead>
+        <tbody id="storageBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:20px;">
+    <div class="ico">📌</div>
+    <p><b>Totales oficiales del proyecto completo</b> (155 tablas, snapshot mensual del proceso programado):
+    julio (foto 30 jul) = <b>8.22 TiB · $119.18</b>; agosto (foto 02 ago) = <b>8.26 TiB · $119.65</b>. Úsalos para
+    "cuánto se tiene en total" — la muestra semanal de arriba es para ver la tendencia, no el total.</p>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Metodología — queries:</b> fuente <code>totalplay-8726e.region-us.INFORMATION_SCHEMA.JOBS_BY_PROJECT</code>.
+      Se excluyen jobs <code>statement_type = 'SCRIPT'</code> para no duplicar el costo de sus sentencias hijas.
+      Costo estimado a $6.25/TiB on-demand. Semana = lunes a domingo, fechas en UTC.
+    </p>
+    <p>
+      <b style="color:var(--ink-2)">Metodología — almacenamiento:</b> los totales oficiales (julio/agosto) vienen de
+      <code>INFORMATION_SCHEMA.TABLE_STORAGE</code> (estado actual), capturados mensualmente por el proceso programado
+      y guardados en <code>KPIS.monitor_costos_bq_mensual</code>. La tendencia semanal usa
+      <code>INFORMATION_SCHEMA.TABLE_STORAGE_TIMELINE_BY_PROJECT</code> (sí guarda historial), tomando el snapshot más
+      reciente de cada tabla al cierre de cada semana, limitado a las 71 tablas con historial completo en las 8
+      semanas (de 155 tablas totales hoy) para que la comparación sea pareja. Costo a $0.02/GB activo + $0.01/GB
+      largo plazo. Ninguno de los dos costos incluye descuentos por compromiso ni es la factura oficial.
+    </p>
+    <p>
+      <b style="color:var(--ink-2)">Metodología — eventos:</b> fuente <code>KPIS.EventMKP</code>, filtrado por su
+      columna de partición <code>semana</code> (ISO week) más un rango de <code>event_date</code> para acotar el año
+      — sin esto, la consulta escanearía la tabla completa (~1.16 TB). 1 fila = 1 evento.
+    </p>
+    <p>Reportes SQL equivalentes en esta carpeta: <code>15_costo_por_semana.sql</code> (queries), <code>23_eventos_por_semana_eventmkp.sql</code> (eventos), <code>22_almacenamiento_por_mes.sql</code> (almacenamiento, totales oficiales y consulta base para la muestra semanal).</p>
+    <div class="chips">
+      <span class="chip">totalplay-8726e</span>
+      <span class="chip">1 jul – 19 ago 2026</span>
+      <span class="chip">$6.25/TiB queries</span>
+      <span class="chip">$0.02/GB almacenamiento</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var weeks = [
+    {label:'29 jun', full:'Semana del 29 jun (solo 1–5 jul, parcial)', partial:true,  cost:4933.59, q:4625, tib:789.375, dias:5},
+    {label:'06 jul', full:'Semana del 06 jul (completa)',      partial:false, cost:7245.07, q:6012, tib:1159.211, dias:7},
+    {label:'13 jul', full:'Semana del 13 jul (completa)',      partial:false, cost:7529.17, q:3849, tib:1204.667, dias:7},
+    {label:'20 jul', full:'Semana del 20 jul (completa)',      partial:false, cost:7127.41, q:5715, tib:1140.386, dias:7},
+    {label:'27 jul', full:'Semana del 27 jul (completa)',      partial:false, cost:5011.40, q:7552, tib:801.825, dias:7},
+    {label:'03 ago', full:'Semana del 03 ago (completa)',      partial:false, cost:910.02,  q:6111, tib:145.603, dias:7},
+    {label:'10 ago', full:'Semana del 10 ago (completa)',      partial:false, cost:1094.36, q:7040, tib:175.097, dias:7},
+    {label:'17 ago', full:'Semana del 17 ago (en curso, 3 días)', partial:true, cost:583.14, q:2356, tib:93.302, dias:3}
+  ];
+
+  var events = [
+    {label:'29 jun', full:'Semana del 29 jun (solo 1–5 jul, parcial)', partial:true,  total:44232326, tipos:10, usuarios:1744748},
+    {label:'06 jul', full:'Semana del 06 jul (completa)',      partial:false, total:51079819, tipos:10, usuarios:1956401},
+    {label:'13 jul', full:'Semana del 13 jul (completa)',      partial:false, total:55272913, tipos:10, usuarios:2037117},
+    {label:'20 jul', full:'Semana del 20 jul (completa)',      partial:false, total:44346337, tipos:10, usuarios:1784350},
+    {label:'27 jul', full:'Semana del 27 jul (completa)',      partial:false, total:44989473, tipos:10, usuarios:1851481},
+    {label:'03 ago', full:'Semana del 03 ago (completa)',      partial:false, total:43742120, tipos:10, usuarios:1782426},
+    {label:'10 ago', full:'Semana del 10 ago (completa)',      partial:false, total:44588394, tipos:10, usuarios:1839784},
+    {label:'17 ago', full:'Semana del 17 ago (en curso, 3 días)', partial:true, total:13024726, tipos:11, usuarios:792181}
+  ];
+
+  // muestra estable de 71 tablas con historial completo en TABLE_STORAGE_TIMELINE_BY_PROJECT
+  var storage = [
+    {label:'29 jun', full:'Semana del 29 jun (foto al 05 jul)', tib:3.7176, cost:61.96},
+    {label:'06 jul', full:'Semana del 06 jul (foto al 12 jul)', tib:3.7933, cost:63.32},
+    {label:'13 jul', full:'Semana del 13 jul (foto al 19 jul)', tib:3.8593, cost:63.28},
+    {label:'20 jul', full:'Semana del 20 jul (foto al 26 jul)', tib:3.9187, cost:64.40},
+    {label:'27 jul', full:'Semana del 27 jul (foto al 02 ago)', tib:3.9743, cost:65.86},
+    {label:'03 ago', full:'Semana del 03 ago (foto al 09 ago)', tib:4.0248, cost:66.77},
+    {label:'10 ago', full:'Semana del 10 ago (foto al 16 ago)', tib:4.0838, cost:67.85},
+    {label:'17 ago', full:'Semana del 17 ago (foto al 19 ago, en curso)', tib:4.1006, cost:68.20}
+  ];
+
+  var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
+  var fmtNum = function(n){ return n.toLocaleString('en-US'); };
+  var css = function(v){ return getComputedStyle(document.body).getPropertyValue(v).trim() || v; };
+
+  // ================= QUERY WEEKLY BAR CHART =================
+  (function(){
+    var svg = document.getElementById('weekChart');
+    var padL=58, padR=16, top=20, bottom=280, w=1040-padL-padR;
+    var maxY = 8000;
+    var n = weeks.length;
+    var slot = w/n, bw = slot*0.56;
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+
+    var gridTicks=[0,2000,4000,6000,8000], gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy=y(t);
+      gridHtml += '<line class="grid-line" x1="'+padL+'" y1="'+gy+'" x2="'+(1040-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="axis-label" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace">$'+(t/1000)+'k</text>';
+    });
+    gridHtml += '<line class="base-line" x1="'+padL+'" y1="'+bottom+'" x2="'+(1040-padR)+'" y2="'+bottom+'"></line>';
+    document.getElementById('weekGrid').innerHTML = gridHtml;
+
+    var html='';
+    weeks.forEach(function(d,i){
+      var cx = padL + slot*i + slot/2;
+      var bx = cx - bw/2;
+      var by = y(d.cost);
+      var bh = bottom - by;
+      var fill = css('--series-query');
+      var extra = d.partial ? 'stroke="'+fill+'" stroke-width="1.5" stroke-dasharray="4 4" fill-opacity="0.18"' : 'fill="'+fill+'"';
+      html += '<rect class="hit" data-i="'+i+'" x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+Math.max(bh,2)+'" rx="6" '+extra+'></rect>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(by-10)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" fill="var(--ink-2)">$'+fmtNum(Math.round(d.cost))+'</text>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(bottom+22)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+(d.partial?' •':'')+'</text>';
+    });
+    document.getElementById('weekBars').innerHTML = html;
+
+    var tip = document.getElementById('weekTip');
+    svg.querySelectorAll('.hit').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = weeks[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.full+'</b><br>Costo: <b>'+fmtUSD(d.cost)+'</b><br>Queries: '+fmtNum(d.q)+' · '+d.tib.toFixed(1)+' TiB';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= EVENTS WEEKLY BAR CHART =================
+  (function(){
+    var svg = document.getElementById('eventsChart');
+    var padL=64, padR=16, top=20, bottom=280, w=1040-padL-padR;
+    var maxY = 60000000;
+    var n = events.length;
+    var slot = w/n, bw = slot*0.56;
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+    var fmtM = function(v){ return (v/1000000).toFixed(0)+'M'; };
+
+    var gridTicks=[0,15000000,30000000,45000000,60000000], gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy=y(t);
+      gridHtml += '<line class="grid-line" x1="'+padL+'" y1="'+gy+'" x2="'+(1040-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="axis-label" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace">'+fmtM(t)+'</text>';
+    });
+    gridHtml += '<line class="base-line" x1="'+padL+'" y1="'+bottom+'" x2="'+(1040-padR)+'" y2="'+bottom+'"></line>';
+    document.getElementById('eventsGrid').innerHTML = gridHtml;
+
+    var html='';
+    events.forEach(function(d,i){
+      var cx = padL + slot*i + slot/2;
+      var bx = cx - bw/2;
+      var by = y(d.total);
+      var bh = bottom - by;
+      var fill = css('--series-events');
+      var extra = d.partial ? 'stroke="'+fill+'" stroke-width="1.5" stroke-dasharray="4 4" fill-opacity="0.18"' : 'fill="'+fill+'"';
+      html += '<rect class="hit-events" data-i="'+i+'" x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+Math.max(bh,2)+'" rx="6" '+extra+'></rect>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(by-10)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" fill="var(--ink-2)">'+fmtM(d.total)+'</text>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(bottom+22)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+(d.partial?' •':'')+'</text>';
+    });
+    document.getElementById('eventsBars').innerHTML = html;
+
+    var tip = document.getElementById('eventsTip');
+    svg.querySelectorAll('.hit-events').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = events[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.full+'</b><br>Eventos: <b>'+fmtNum(d.total)+'</b><br>Tipos: '+d.tipos+' · Usuarios: '+fmtNum(d.usuarios);
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= EVENTS TABLE =================
+  (function(){
+    var html='';
+    var tTotal=0;
+    events.forEach(function(d){
+      tTotal+=d.total;
+      html += '<tr><td class="name">'+d.full.replace(' (completa)','').replace(' (en curso, 3 días)',' <span class=\"tag\">en curso</span>').replace(' (solo 1–5 jul, parcial)',' <span class=\"tag\">parcial</span>')+'</td>'+
+        '<td class="num">'+fmtNum(d.total)+'</td>'+
+        '<td class="num">'+d.tipos+'</td>'+
+        '<td class="num">'+fmtNum(d.usuarios)+'</td></tr>';
+    });
+    html += '<tr class="total"><td class="name">Total (1 jul – 19 ago)</td><td class="num">'+fmtNum(tTotal)+'</td><td class="num">—</td><td class="num">—</td></tr>';
+    document.getElementById('eventsBody').innerHTML = html;
+  })();
+
+  // ================= STORAGE CHART (weekly, stable 71-table sample) =================
+  (function(){
+    var svg = document.getElementById('storageChart');
+    var padL=54, padR=16, top=20, bottom=200, w=1040-padL-padR;
+    var minY = 3.5, maxY = 4.3;
+    var n = storage.length;
+    var stepX = w/(n-1);
+    var x = function(i){ return padL + i*stepX; };
+    var y = function(v){ return bottom - ((v-minY)/(maxY-minY))*(bottom-top); };
+
+    var gridTicks=[3.5,3.7,3.9,4.1,4.3], gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy=y(t);
+      gridHtml += '<line class="grid-line" x1="'+padL+'" y1="'+gy+'" x2="'+(1040-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="axis-label" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace">'+t.toFixed(1)+' TiB</text>';
+    });
+    document.getElementById('storageGrid').innerHTML = gridHtml;
+
+    var pts = storage.map(function(d,i){ return x(i)+','+y(d.tib); });
+    var areaPath = 'M'+x(0)+','+bottom+' L'+pts.join(' L')+' L'+x(n-1)+','+bottom+' Z';
+
+    var html='';
+    html += '<defs><linearGradient id="storageGrad" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0%" stop-color="var(--series-storage)" stop-opacity="0.28"/>'+
+      '<stop offset="100%" stop-color="var(--series-storage)" stop-opacity="0"/></linearGradient></defs>';
+    html += '<path d="'+areaPath+'" fill="url(#storageGrad)" stroke="none"></path>';
+    html += '<path d="M'+pts.join(' L')+'" fill="none" stroke="var(--series-storage)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>';
+    storage.forEach(function(d,i){
+      var cx=x(i), cy=y(d.tib);
+      html += '<circle cx="'+cx+'" cy="'+cy+'" r="4" fill="var(--series-storage)"></circle>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(cy-12)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" fill="var(--ink-2)">'+d.tib.toFixed(2)+'</text>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(bottom+22)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+'</text>';
+      html += '<rect class="hit-storage" data-i="'+i+'" x="'+(cx-stepX/2)+'" y="'+top+'" width="'+stepX+'" height="'+(bottom-top)+'" fill="transparent"></rect>';
+    });
+    document.getElementById('storageBars').innerHTML = html;
+
+    var tip = document.getElementById('storageTip');
+    svg.querySelectorAll('.hit-storage').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = storage[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.full+'</b><br>Almacenado: <b>'+d.tib.toFixed(4)+' TiB</b><br>Costo: '+fmtUSD(d.cost)+'/mes (prorrateado)';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= STORAGE TABLE =================
+  (function(){
+    var html='';
+    var prev=null;
+    storage.forEach(function(d){
+      var variacion = prev===null ? '—' : (((d.tib-prev)/prev*100>=0?'+':'')+((d.tib-prev)/prev*100).toFixed(2)+'%');
+      html += '<tr><td class="name">'+d.full+'</td><td class="num">'+d.tib.toFixed(4)+'</td><td class="num">'+fmtUSD(d.cost)+'</td><td class="num">'+variacion+'</td></tr>';
+      prev = d.tib;
+    });
+    document.getElementById('storageBody').innerHTML = html;
+  })();
+})();
+</script>

@@ -1,0 +1,345 @@
+<title>Caída de Costos BigQuery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --grid:#E3E8ED; --baseline:#C7D0D9;
+    --series-query:#2a78d6;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --grid:#212B36; --baseline:#2C3948;
+      --series-query:#5b9eec;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --grid:#212B36; --baseline:#2C3948;
+    --series-query:#5b9eec;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{
+    font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 34px/1.15 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.6; max-width:76ch; margin-top:2px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:24px 0 20px; }
+  .tile{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+  }
+  .tile .label{ font-size:12.5px; color:var(--muted); font-weight:500; }
+  .tile .value{ font:600 28px/1.05 "IBM Plex Mono", monospace; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .tile .sub{ font-size:12.5px; color:var(--ink-2); }
+  .pill{ display:inline-flex; align-items:center; gap:4px; font:600 11.5px/1 "IBM Plex Mono", monospace; padding:3px 7px; border-radius:100px; }
+  .pill.down{ background:rgba(12,163,12,.12); color:var(--good); }
+  .pill.up{ background:rgba(208,59,59,.12); color:var(--critical); }
+  .pill.flat{ background:var(--accent-soft); color:var(--accent-ink); }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px;
+  }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:90ch; }
+
+  .callout{
+    display:flex; gap:12px; align-items:flex-start; background:var(--surface-2);
+    border:1px dashed var(--border); border-radius:12px; padding:14px 16px; margin-top:14px;
+  }
+  .callout .ico{ font-size:17px; line-height:1.3; }
+  .callout p{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.6; }
+
+  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2); font-weight:500; }
+  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .legend i.dashed{ background:transparent; border:1.5px dashed var(--series-query); }
+
+  .chart-wrap{ position:relative; }
+  svg text{ font-family:"IBM Plex Sans", sans-serif; }
+  .axis-label{ font-size:11px; fill:var(--muted); }
+  .grid-line{ stroke:var(--grid); stroke-width:1; }
+  .base-line{ stroke:var(--baseline); stroke-width:1; }
+  .tooltip{
+    position:absolute; pointer-events:none; background:#FFFFFF; color:#101820;
+    font:500 12px/1.5 "IBM Plex Mono", monospace; padding:8px 10px; border-radius:8px;
+    border:1px solid #DCE3EA; box-shadow:var(--shadow); opacity:0; transform:translate(-50%,-112%);
+    transition:opacity .1s; white-space:nowrap; z-index:5;
+  }
+  .tooltip b{ color:#0B0F14; }
+
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+  thead th{
+    text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+  td.mono{ font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--muted); }
+  .tag{ font:500 10.5px "IBM Plex Mono",monospace; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); padding:2px 6px; border-radius:100px; margin-left:6px; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.7; max-width:92ch; margin:0 0 8px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>totalplay-8726e &nbsp;·&nbsp; 20 jul – 25 ago 2026</div>
+    <h1>Costos BigQuery — última semana de julio a hoy</h1>
+    <div class="subtitle">
+      Costo de procesamiento de queries (<code>JOBS_BY_PROJECT</code>), calculado en vivo, semana a semana,
+      desde el <b>20 de julio</b> (para incluir completa la última semana de julio) hasta <b>hoy, 25 de agosto</b>.
+      Generado el 25 de agosto de 2026.
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="tile">
+      <div class="label">Costo acumulado · 20 jul al 25 ago</div>
+      <div class="value">$15,409</div>
+      <div class="sub">35,650 queries · 2,465.4 TiB facturados</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana más cara (completa)</div>
+      <div class="value">$7,127</div>
+      <div class="sub">semana del 20 jul (completa)</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana más barata (completa)</div>
+      <div class="value">$910</div>
+      <div class="sub"><span class="pill down">▼ 87.2%</span> vs. la semana más cara · 03 ago</div>
+    </div>
+    <div class="tile">
+      <div class="label">Semana en curso (24–25 ago, 2 días)</div>
+      <div class="value">$241</div>
+      <div class="sub">en curso · cierra el 30 ago</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Costo por semana — Queries</h2>
+      <div class="meta">nivel=semana · JOBS_BY_PROJECT</div>
+    </div>
+    <div class="card-note">
+      Semana = lunes a domingo. La barra con borde punteado es la semana en curso (incompleta).
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--series-query)"></i>Semana completa</span>
+      <span><i class="dashed"></i>Semana en curso</span>
+    </div>
+    <div class="chart-wrap">
+      <svg id="weekChart" viewBox="0 0 1040 340" width="100%" style="overflow:visible; margin-top:12px;">
+        <g id="weekGrid"></g>
+        <g id="weekBars"></g>
+      </svg>
+      <div class="tooltip" id="weekTip"></div>
+    </div>
+    <div class="callout">
+      <div class="ico">💡</div>
+      <p>El costo cae <b>87.2%</b> entre la semana del 20 jul ($7,127, la más cara del rango) y la del 03 ago
+      ($910, la más barata) — coincide con el cambio de eficiencia en <code>KPIS.EventMKP</code> del 31 de julio
+      ya documentado en <code>reporte_impacto_eventmkp.html</code>. Desde entonces el costo semanal se mantiene
+      estable entre ~$910 y ~$1,095.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Detalle semanal</h2>
+      <div class="meta">JOBS_BY_PROJECT</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th>Semana</th><th class="num">Queries</th><th class="num">Usuarios activos</th><th class="num">TiB facturados</th><th class="num">Costo estimado</th></tr>
+        </thead>
+        <tbody id="weekBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Costo por usuario</h2>
+      <div class="meta">mismo rango · 20 jul – 25 ago</div>
+    </div>
+    <div class="card-note">
+      Quién generó el costo en este rango. Ojo: esta cuenta (<code>Usuario A@</code>) incluye tanto trabajo
+      operativo como las consultas de desarrollo/backfill usadas para armar este mismo sistema de monitoreo —
+      su costo no es 100% representativo de carga recurrente.
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr><th>Usuario</th><th class="num">Queries</th><th class="num">Días activos</th><th class="num">TiB facturados</th><th class="num">Costo estimado</th><th class="num">% del total</th></tr>
+        </thead>
+        <tbody id="userBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:20px;">
+    <div class="ico">📌</div>
+    <p><b>Almacenamiento (contexto, no recalculado en este reporte):</b> según la última foto oficial disponible
+    (02 ago), el almacenamiento del proyecto cuesta ~$120/mes — marginal frente a los $15,409 de queries de este
+    rango. Detalle completo en <code>reporte_semanas_julio_agosto.html</code>.</p>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Metodología:</b> fuente <code>totalplay-8726e.region-us.INFORMATION_SCHEMA.JOBS_BY_PROJECT</code>.
+      Se excluyen jobs <code>statement_type = 'SCRIPT'</code> para no duplicar el costo de sus sentencias hijas.
+      Costo estimado a $6.25/TiB on-demand (sin descuentos por compromiso, no es la factura oficial). Semana = lunes
+      a domingo, fechas en UTC.
+    </p>
+    <p>Consultas SQL equivalentes en esta carpeta: <code>15_costo_por_semana.sql</code> (por semana), <code>16_queries_por_usuario.sql</code> (por usuario).</p>
+    <div class="chips">
+      <span class="chip">totalplay-8726e</span>
+      <span class="chip">20 jul – 25 ago 2026</span>
+      <span class="chip">$6.25/TiB</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var weeks = [
+    {label:'20 jul', full:'Semana del 20 jul (completa)', partial:false, cost:7127.41, q:5715, tib:1140.3857, users:4},
+    {label:'27 jul', full:'Semana del 27 jul (completa)', partial:false, cost:5011.40, q:7552, tib:801.8247, users:3},
+    {label:'03 ago', full:'Semana del 03 ago (completa)', partial:false, cost:910.02,  q:6111, tib:145.6030, users:3},
+    {label:'10 ago', full:'Semana del 10 ago (completa)', partial:false, cost:1094.36, q:7040, tib:175.0971, users:3},
+    {label:'17 ago', full:'Semana del 17 ago (completa)', partial:false, cost:1025.32, q:7492, tib:164.0504, users:3},
+    {label:'24 ago', full:'Semana del 24 ago (en curso, 2 días)', partial:true, cost:240.55, q:1740, tib:38.4882, users:3}
+  ];
+
+  var users = [
+    {email:'usuario.a@empresa.com', q:33098, dias:37, tib:2144.992, cost:13406.20},
+    {email:'usuario.b@empresa.com', q:2158, dias:28, tib:296.962, cost:1856.01},
+    {email:'usuario.c@empresa.com', q:306, dias:23, tib:23.388, cost:146.18},
+    {email:'674728898206-compute@developer.gserviceaccount.com', q:89, dias:3, tib:0.107, cost:0.67}
+  ];
+
+  var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
+  var fmtNum = function(n){ return n.toLocaleString('en-US'); };
+  var css = function(v){ return getComputedStyle(document.body).getPropertyValue(v).trim() || v; };
+
+  // ================= QUERY WEEKLY BAR CHART =================
+  (function(){
+    var svg = document.getElementById('weekChart');
+    var padL=58, padR=16, top=20, bottom=280, w=1040-padL-padR;
+    var maxY = 8000;
+    var n = weeks.length;
+    var slot = w/n, bw = slot*0.56;
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+
+    var gridTicks=[0,2000,4000,6000,8000], gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy=y(t);
+      gridHtml += '<line class="grid-line" x1="'+padL+'" y1="'+gy+'" x2="'+(1040-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="axis-label" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace">$'+(t/1000)+'k</text>';
+    });
+    gridHtml += '<line class="base-line" x1="'+padL+'" y1="'+bottom+'" x2="'+(1040-padR)+'" y2="'+bottom+'"></line>';
+    document.getElementById('weekGrid').innerHTML = gridHtml;
+
+    var html='';
+    weeks.forEach(function(d,i){
+      var cx = padL + slot*i + slot/2;
+      var bx = cx - bw/2;
+      var by = y(d.cost);
+      var bh = bottom - by;
+      var fill = css('--series-query');
+      var extra = d.partial ? 'stroke="'+fill+'" stroke-width="1.5" stroke-dasharray="4 4" fill-opacity="0.18"' : 'fill="'+fill+'"';
+      html += '<rect class="hit" data-i="'+i+'" x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+Math.max(bh,2)+'" rx="6" '+extra+'></rect>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(by-10)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" fill="var(--ink-2)">$'+fmtNum(Math.round(d.cost))+'</text>';
+      html += '<text class="axis-label" x="'+cx+'" y="'+(bottom+22)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+(d.partial?' •':'')+'</text>';
+    });
+    document.getElementById('weekBars').innerHTML = html;
+
+    var tip = document.getElementById('weekTip');
+    svg.querySelectorAll('.hit').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = weeks[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.full+'</b><br>Costo: <b>'+fmtUSD(d.cost)+'</b><br>Queries: '+fmtNum(d.q)+' · '+d.tib.toFixed(1)+' TiB · '+d.users+' usuarios';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= WEEKLY DETAIL TABLE =================
+  (function(){
+    var html='';
+    var tQ=0, tTib=0, tCost=0;
+    weeks.forEach(function(d){
+      tQ+=d.q; tTib+=d.tib; tCost+=d.cost;
+      html += '<tr><td class="name">'+d.full.replace(' (completa)','').replace(' (en curso, 2 días)',' <span class="tag">en curso</span>')+'</td>'+
+        '<td class="num">'+fmtNum(d.q)+'</td>'+
+        '<td class="num">'+d.users+'</td>'+
+        '<td class="num">'+d.tib.toFixed(3)+'</td>'+
+        '<td class="num">'+fmtUSD(d.cost)+'</td></tr>';
+    });
+    html += '<tr class="total"><td class="name">Total (20 jul – 25 ago)</td><td class="num">'+fmtNum(tQ)+'</td><td class="num">—</td><td class="num">'+tTib.toFixed(3)+'</td><td class="num">'+fmtUSD(tCost)+'</td></tr>';
+    document.getElementById('weekBody').innerHTML = html;
+  })();
+
+  // ================= USERS TABLE =================
+  (function(){
+    var html='';
+    var tCost=0;
+    users.forEach(function(u){ tCost+=u.cost; });
+    users.forEach(function(u){
+      var pct = (u.cost/tCost*100).toFixed(1)+'%';
+      html += '<tr><td class="mono">'+u.email+'</td>'+
+        '<td class="num">'+fmtNum(u.q)+'</td>'+
+        '<td class="num">'+u.dias+'</td>'+
+        '<td class="num">'+u.tib.toFixed(3)+'</td>'+
+        '<td class="num">'+fmtUSD(u.cost)+'</td>'+
+        '<td class="num">'+pct+'</td></tr>';
+    });
+    html += '<tr class="total"><td class="name">Total</td><td class="num">'+fmtNum(users.reduce(function(a,u){return a+u.q},0))+'</td><td class="num">—</td><td class="num">'+users.reduce(function(a,u){return a+u.tib},0).toFixed(3)+'</td><td class="num">'+fmtUSD(tCost)+'</td><td class="num">100%</td></tr>';
+    document.getElementById('userBody').innerHTML = html;
+  })();
+})();
+</script>

@@ -1,590 +1,92 @@
-<title>Comparativo de Backends STB</title>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reportes de Costos BigQuery</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
   :root{
     --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
     --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
-    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
-    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7; --prov-chc:#008300;
-    --cat-compute:#2a78d6; --cat-storage:#1baf7a; --cat-transit:#e87ba4; --cat-queries:#eda100; --cat-maint:#4a3aa7;
-    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --accent:#2a78d6; --accent-soft:#E4EEFC;
     --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
   }
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
+    :root{
       --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
       --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
-      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
-      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
-      --cat-compute:#5b9eec; --cat-storage:#37c290; --cat-transit:#d55181; --cat-queries:#c98500; --cat-maint:#9085e9;
-      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14);
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
     }
   }
-  :root[data-theme="dark"]{
-    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
-    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
-    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
-    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
-    --cat-compute:#5b9eec; --cat-storage:#37c290; --cat-transit:#d55181; --cat-queries:#c98500; --cat-maint:#9085e9;
-    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
-    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
-  }
-
   *{box-sizing:border-box;}
   body{ margin:0; background:var(--page); color:var(--ink); font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
-  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
-
-  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
-  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; }
-  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
-  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
-  h1.section{ font-size:22px; }
-  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:84ch; margin-top:4px; }
-  .subtitle b{ color:var(--ink); font-weight:600; }
-
-  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:20px 0; }
-  .tile{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; }
-  .tile .label{ font-size:12px; color:var(--muted); font-weight:500; }
-  .tile .value{ font:600 24px/1.05 "IBM Plex Mono", monospace; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
-  .tile .sub{ font-size:12px; color:var(--ink-2); }
-
-  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px; }
-  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
-  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
-  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
-  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:94ch; }
-
-  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 18px; margin-top:14px; }
-  .callout.warn{ border-color:var(--critical); background:rgba(208,59,59,.06); }
-  .callout .ico{ font-size:18px; line-height:1.3; }
-  .callout p{ margin:0; font-size:13px; color:var(--ink-2); line-height:1.7; }
-  .callout b{ color:var(--ink); }
-
-  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; }
-  .legend span{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2); font-weight:500; }
-  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
-
-  .stackchart-wrap{ position:relative; margin-top:16px; }
-  .stackchart-wrap svg{ width:100%; height:auto; display:block; }
-  .stack-axis{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:10.5px; }
-  .stack-grid{ stroke:var(--border); stroke-width:1; }
-  .stack-baseline{ stroke:var(--ink-2); stroke-width:1; }
-  .stack-label{ fill:var(--ink); font-family:"IBM Plex Sans", sans-serif; font-size:11px; font-weight:600; }
-  .stack-sub{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:9px; }
-  .stack-tooltip{
-    position:absolute; pointer-events:none; background:#FFFFFF; color:#101820;
-    font:500 12px/1.5 "IBM Plex Mono", monospace; padding:8px 10px; border-radius:8px;
-    border:1px solid #DCE3EA; box-shadow:var(--shadow); opacity:0; transform:translate(-50%,-108%);
-    transition:opacity .1s; white-space:nowrap; z-index:5;
-  }
-  .stack-tooltip b{ color:#0B0F14; }
-
-  .tblwrap{ overflow-x:auto; margin-top:12px; border:1px solid var(--border); border-radius:12px; }
-  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
-  thead th{ text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); padding:9px 13px; border-bottom:1px solid var(--border); white-space:nowrap; }
-  tbody td{ padding:9px 13px; border-bottom:1px solid var(--border); color:var(--ink-2); vertical-align:top; }
-  tbody tr:last-child td{ border-bottom:none; }
-  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
-  tbody tr:hover{ background:var(--surface-2); }
-  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
-  td.name{ color:var(--ink); font-weight:500; white-space:nowrap; }
-  .swatch{ display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; }
-  .tag{ font:500 10.5px "IBM Plex Mono",monospace; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); padding:2px 6px; border-radius:100px; }
-  .tag.ok{ color:var(--good); border-color:var(--good); }
-  .tag.risk{ color:var(--critical); border-color:var(--critical); }
-
-  .marginbar{ background:var(--surface-2); border-radius:5px; height:8px; position:relative; overflow:hidden; margin-top:5px; min-width:120px; }
-  .marginbar .fill{ position:absolute; inset:0 auto 0 0; border-radius:5px; }
-
-  .qual-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px; margin-top:16px; }
-  .qual-card{ border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:var(--surface-2); }
-  .qual-card h3{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:8px; }
-  .qual-card ul{ margin:0; padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.7; }
-
-  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
-  footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:98ch; margin:0 0 8px; }
-  footer a{ color:var(--accent); }
-  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
-  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+  .wrap{ max-width:960px; margin:0 auto; padding:48px 24px 64px; }
+  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
+  h1{ font:700 32px/1.2 "IBM Plex Sans", sans-serif; margin:8px 0 6px; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.6; max-width:70ch; margin-bottom:36px; }
+  h2.section{ font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:36px 0 14px; font-weight:600; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  a.card{ display:block; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px 22px; box-shadow:var(--shadow); text-decoration:none; color:inherit; transition:transform .12s, border-color .12s; }
+  a.card:hover{ transform:translateY(-2px); border-color:var(--accent); }
+  a.card h3{ margin:0 0 6px; font-size:15.5px; color:var(--ink); }
+  a.card p{ margin:0; font-size:12.5px; color:var(--muted); line-height:1.55; }
+  footer{ margin-top:48px; padding-top:20px; border-top:1px solid var(--border); font-size:12px; color:var(--muted); }
 </style>
-
+</head>
+<body>
 <div class="wrap">
-
-  <div class="masthead">
-    <div class="eyebrow"><span class="dot"></span>pipeline de ingesta de eventos STB</div>
-    <h1>Comparativo completo: costo, tránsito y límites de tamaño</h1>
-    <div class="subtitle">
-      Extiende el reporte <b>"Ingesta de eventos STB"</b> (20 ago): la base de <b>BigQuery es sólida</b> — tráfico
-      real medido en <code>KPIS.EventMKP</code> (73.72 eventos/seg, evento medio 392 B, dos fuentes cruzadas) — y el
-      costo de <b>DynamoDB, ClickHouse, ClickHouse Cloud y Aurora</b> es el mismo volumen aplicado a los precios
-      públicos de cada proveedor, no una medición. Se agrega <b>ClickHouse Cloud</b> (la versión administrada,
-      antes omitida) junto con tránsito, límites de tamaño, y — para Cloud específicamente — sus limitantes,
-      velocidad de lectura/escritura y compatibilidad con AWS.
-    </div>
+  <div class="eyebrow">reportes · BigQuery</div>
+  <h1>Reportes de costos de BigQuery</h1>
+  <div class="subtitle">
+    Bitácora de costos, tendencias y comparativos de arquitectura para la ingesta de eventos.
+    Todos los precios son estimados a partir de precios de lista públicos — no son la factura oficial de ningún proveedor.
   </div>
 
-  <div class="stats">
-    <div class="tile">
-      <div class="label">Volumen real (ancla)</div>
-      <div class="value">73.72<span style="font-size:14px;color:var(--muted)"> ev/s</span></div>
-      <div class="sub">KPIS.EventMKP, medido, no estimado</div>
-    </div>
-    <div class="tile">
-      <div class="label">Tamaño de evento medio</div>
-      <div class="value">392<span style="font-size:14px;color:var(--muted)"> B</span></div>
-      <div class="sub">JSON del PDF de Dev, cruzado con promedio real (385 B)</div>
-    </div>
-    <div class="tile">
-      <div class="label">BigQuery hoy (mes 12, real)</div>
-      <div class="value" style="color:var(--prov-bq)">$330<span style="font-size:14px;color:var(--muted)">/mes</span></div>
-      <div class="sub">el único costo de los 4 que es sólido</div>
-    </div>
-    <div class="tile">
-      <div class="label">Techo de tamaño del pipeline</div>
-      <div class="value">1 MB</div>
-      <div class="sub">límite de Kafka (compartido por los 4) — ver detalle abajo</div>
-    </div>
+  <h2 class="section">Costo y tendencias de BigQuery</h2>
+  <div class="grid">
+    <a class="card" href="costo-semanal-bigquery.html">
+      <h3>Costo Semanal BigQuery</h3>
+      <p>Costo, queries y consumo por usuario y tabla, con tendencia de varias semanas.</p>
+    </a>
+    <a class="card" href="bitacora-semanal-bigquery.html">
+      <h3>Bitácora Semanal BigQuery</h3>
+      <p>Costo de queries por semana, volumen de eventos y tendencia de almacenamiento.</p>
+    </a>
+    <a class="card" href="caida-costos-bigquery.html">
+      <h3>Caída de Costos BigQuery</h3>
+      <p>Costo de procesamiento semana a semana, siguiendo la baja de costo reciente.</p>
+    </a>
+    <a class="card" href="impacto-eventmkp.html">
+      <h3>Impacto EventMKP</h3>
+      <p>Cuánto bajó el costo diario tras una modificación en una tabla de eventos, con tabla de control.</p>
+    </a>
   </div>
 
-  <div class="card">
-    <div class="card-head">
-      <h2>Costo — móvil real vs. STB estimado, por proveedor</h2>
-      <div class="meta">mes 12 · escenario medio (5 listas × 5 ítems) · mismos números de "Ingesta de eventos STB"</div>
-    </div>
-    <div class="card-note">
-      Se repite aquí el mismo cálculo del reporte anterior porque es la base de todo lo demás, más
-      <b>ClickHouse Cloud</b> (nuevo en este reporte): BigQuery y DynamoDB son ~100% pago-por-uso, así que
-      escalan con el volumen; ClickHouse autoalojado ya paga su infraestructura fija, así que casi no sube;
-      ClickHouse Cloud tiene un piso comprometido (tier Scale) pero más bajo que el autoalojado a este volumen;
-      Aurora es el que peor escala porque su cómputo mínimo (8 ACU) crece directo con el tráfico.
-    </div>
-    <div class="legend">
-      <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
-      <span><i style="background:var(--cat-storage)"></i>Almacenamiento</span>
-      <span><i style="background:var(--cat-transit)"></i>Tránsito</span>
-      <span><i style="background:var(--cat-queries)"></i>Consultas / Queries</span>
-    </div>
-    <div class="stackchart-wrap">
-      <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
-        <g id="stackGrid"></g>
-        <g id="stackBars"></g>
-      </svg>
-      <div class="stack-tooltip" id="stackTip"></div>
-    </div>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>Proveedor</th><th>Volumen</th><th class="num">Cómputo/Nodos</th><th class="num">Almacenamiento</th><th class="num">Tránsito</th><th class="num">Queries</th><th class="num">Total/mes</th></tr></thead>
-        <tbody id="stackTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>Tránsito de datos — cómo entra y sale la información</h2>
-      <div class="meta">los 4 comparten el mismo tópico Kafka de origen</div>
-    </div>
-    <div class="card-note">
-      El transporte hasta Kafka ya está decidido (STB → MQTT → Broker → Bridge → Kafka). A partir de ahí, cada
-      proveedor se conecta distinto — eso cambia la latencia, qué tan directo es el camino, y si hay costo de
-      tránsito explícito.
-    </div>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>Proveedor</th><th>Entrada (escritura)</th><th>Salida (lectura/consulta)</th><th>Patrón</th><th class="num">Costo de tránsito</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</td>
-            <td>Kafka Sink Connector oficial → Storage Write API (gRPC), misma región GCP</td>
-            <td>gRPC/HTTP interno para queries; sin salida a redes públicas en este pipeline</td>
-            <td><span class="tag">async, por streaming</span></td>
-            <td class="num">$0</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</td>
-            <td>Kafka Connect Sink Connector (o Lambda consumidor) → API HTTPS (PutItem/BatchWriteItem), misma región AWS</td>
-            <td>API HTTPS (GetItem/Query), no hay motor de consultas propio</td>
-            <td><span class="tag">async, por lotes</span></td>
-            <td class="num">$0</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse</td>
-            <td>Motor de tabla Kafka <b>nativo</b> — consume el tópico directo por protocolo binario de Kafka, sin conector externo</td>
-            <td>Protocolo nativo TCP de ClickHouse o interfaz HTTP, según el cliente</td>
-            <td><span class="tag ok">el más directo</span></td>
-            <td class="num">$1.52–14.54</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</td>
-            <td><b>ClickPipes</b> — conector Kafka nativo administrado por ClickHouse Inc., sin infra propia que mantener para el conector</td>
-            <td>Protocolo nativo TCP o HTTP, igual que autoalojado — pero el servidor lo opera ClickHouse Inc.</td>
-            <td><span class="tag ok">directo, administrado</span></td>
-            <td class="num">$0 (incluido en el servicio)</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</td>
-            <td>Kafka Connect JDBC Sink Connector → protocolo JDBC/TCP hacia el motor relacional</td>
-            <td>JDBC/SQL — requiere que el consumidor hable SQL</td>
-            <td><span class="tag">sync, por conexión</span></td>
-            <td class="num">$0</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="callout">
-      <div class="ico">🔌</div>
-      <p>El único con costo de tránsito explícito es <b>ClickHouse autoalojado</b> — no por la conexión a Kafka
-      (que es interna y gratis), sino por la <b>replicación entre nodos</b> del propio clúster (cross-AZ,
-      ~$0.01/GB), necesaria para alta disponibilidad. Los otros cuatro (incluida <b>ClickHouse Cloud</b>) delegan
-      esa replicación interna al servicio administrado, sin cargo aparte. ClickHouse y ClickHouse Cloud comparten
-      el <b>mismo motor de tabla Kafka nativo</b> — ninguno de los dos necesita un conector externo tipo Kafka
-      Connect, lo que en teoría les da la menor latencia de los 5 (un salto menos en la cadena); la diferencia es
-      solo quién opera el servidor que corre ese motor.</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>Límite de tamaño por evento</h2>
-      <div class="meta">evento real hoy: 392 B — todos con margen amplio, por ahora</div>
-    </div>
-    <div class="card-note">
-      Antes de llegar a cualquier base de datos, todo evento pasa por el mismo tópico Kafka
-      (<code>tv-events-enriched</code>) — su límite de mensaje aplica primero, sin importar a cuál de los 4 se
-      dirija después.
-    </div>
-    <div class="callout warn">
-      <div class="ico">⚠️</div>
-      <p><b>Kafka es el techo compartido, y hoy es más chico que el límite de DynamoDB:</b> el default de Apache
-      Kafka es <code>message.max.bytes</code> ≈ <b>1 MB</b> por mensaje (broker y productor deben coincidir, o el
-      productor falla). Es configurable hacia arriba, pero si algún día se sube ese límite por encima de
-      <b>400 KB</b> sin revisar los 4 destinos, <b>DynamoDB empezaría a rechazar esos eventos</b> con
-      <code>ValidationException</code> aunque Kafka y los demás los acepten sin problema — es el proveedor con el
-      techo más bajo de los 4.</p>
-    </div>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>Proveedor</th><th class="num">Límite real</th><th>Qué pasa si se excede</th><th>Margen vs. evento actual (392 B)</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--muted)"></span>Kafka (compartido, previo a los 4)</td>
-            <td class="num">~1 MB</td>
-            <td>El productor falla al publicar; hay que subir <code>message.max.bytes</code> en broker y productor a la vez</td>
-            <td>~2,675× <div class="marginbar"><div class="fill" style="width:100%;background:var(--muted)"></div></div></td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</td>
-            <td class="num">10 MB</td>
-            <td>Storage Write API rechaza la fila/request si excede el tamaño</td>
-            <td>~26,700× <div class="marginbar"><div class="fill" style="width:100%;background:var(--prov-bq)"></div></div></td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</td>
-            <td class="num">400 KB</td>
-            <td><code>ValidationException</code> — rechazo total del ítem, sin excepción</td>
-            <td>~1,045× <div class="marginbar"><div class="fill" style="width:39%;background:var(--prov-dynamo)"></div></div></td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse</td>
-            <td class="num">sin límite propio</td>
-            <td>Hereda el límite de Kafka (arriba) — ClickHouse mismo no impone un techo adicional de fila</td>
-            <td>igual que Kafka <div class="marginbar"><div class="fill" style="width:100%;background:var(--prov-ch)"></div></div></td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</td>
-            <td class="num">sin límite propio*</td>
-            <td>Mismo motor, hereda el límite de Kafka igual que autoalojado; *ClickPipes no publica un tope propio de tamaño de mensaje aparte del broker</td>
-            <td>igual que Kafka <div class="marginbar"><div class="fill" style="width:100%;background:var(--prov-chc)"></div></div></td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</td>
-            <td class="num">~8 KB (MySQL) / ~2 KB (PostgreSQL) antes de desbordar</td>
-            <td>No se pierde el dato: TEXT/BLOB (MySQL) o TOAST (PostgreSQL) lo mueven a almacenamiento aparte de forma transparente, con una lectura/escritura extra</td>
-            <td>~21× dentro de fila <div class="marginbar"><div class="fill" style="width:100%;background:var(--prov-aurora)"></div></div></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="callout">
-      <div class="ico">✅</div>
-      <p>Con el evento actual (392 B) ninguno de los 5 está ni remotamente cerca de su límite — hasta el más
-      apretado (DynamoDB, 400 KB) tiene ~1,000× de margen. Esto solo importaría si el evento creciera mucho
-      (ej. si empezaran a incluir metadatos pesados, imágenes o payloads sin comprimir); a la forma actual del
-      evento, el tamaño no es un criterio de decisión entre los 5.</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>Limitantes, velocidad de lectura/escritura y compatibilidad con AWS</h2>
-      <div class="meta">los 5 proveedores, no solo ClickHouse Cloud</div>
-    </div>
-    <div class="card-note">Mismas 3 preguntas, ahora para los 5. El patrón que se repite: BigQuery y ClickHouse están hechos para leer <i>mucho de golpe</i> (analítica); DynamoDB y Aurora están hechos para leer/escribir <i>una fila a la vez, rapidísimo</i> (transaccional) — ninguno es "el más rápido" en general, depende de qué tipo de lectura necesites.</div>
-    <div class="tblwrap">
-      <table>
-        <thead><tr><th>Proveedor</th><th>Limitantes</th><th>Escritura</th><th>Lectura</th><th>Compatible con AWS</th></tr></thead>
-        <tbody>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</td>
-            <td>Slots on-demand compartidos, no garantizados; sin lookups de una sola fila rápidos; sin transacciones multi-fila tipo OLTP</td>
-            <td>Storage Write API soporta streams de varios GB/seg agregados entre todos los clientes</td>
-            <td>Escaneos analíticos sub-segundo con tabla bien particionada; leer 1 sola fila tarda cientos de ms igual que leer millones — no es su punto fuerte</td>
-            <td><span class="tag risk">No</span> — motor propio de Google Cloud, no corre en AWS (una app en AWS sí puede llamarlo por internet)</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</td>
-            <td>Máx. 20 índices secundarios por tabla; un mal diseño de partition key puede crear "particiones calientes" que limitan el throughput; sin joins ni agregaciones nativas</td>
-            <td>Millones de writes/seg agregados entre particiones; cada escritura individual, un dígito de milisegundo</td>
-            <td>Lectura por clave: 1–9 ms, de las más rápidas que hay; un escaneo de tabla completa (lo que pediría analítica) es lento y caro</td>
-            <td><span class="tag ok">Sí, nativo</span> — es el motor propio de AWS; no existe fuera de AWS</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</td>
-            <td>Sin alta disponibilidad ni respaldo automático — tú lo configuras; no pensado para tablas con updates frecuentes fila por fila</td>
-            <td>Millones de filas/seg sostenidas, escala casi lineal al agregar nodos (~4M filas/seg en un solo nodo, en benchmarks públicos)</td>
-            <td>Agregaciones sobre miles de millones de filas en &lt;1 seg con tabla bien diseñada; leer 1 sola fila por ID es más lento que un key-value store (su índice es disperso, no exacto)</td>
-            <td><span class="tag ok">Sí</span> — corre en cualquier VM: AWS, GCP, Azure o on-prem, tú eliges</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</td>
-            <td>Igual que autoalojado + menos control de configuración; tier Basic sin HA real; ClickPipes (Kafka) solo en 18 regiones de AWS (antes 6, ampliado abril 2026)</td>
-            <td>Igual que autoalojado</td>
-            <td>Igual que autoalojado, más una caché distribuida compartida entre nodos: consultas "en frío" hasta 4× más rápido que un autoalojado equivalente</td>
-            <td><span class="tag ok">Sí</span> — AWS, GCP o Azure, se elige al crear el servicio; facturable desde AWS Marketplace</td>
-          </tr>
-          <tr>
-            <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</td>
-            <td>~8 KB de fila antes de desbordar (MySQL); límite de conexiones directas por instancia (por eso hace falta RDS Proxy); Serverless v2 tiene un piso mínimo de ACU</td>
-            <td>Buena para OLTP clásico: transacciones de un dígito de milisegundo</td>
-            <td>Rápido en lookups por clave primaria; lento en agregaciones/escaneos completos — es un motor de filas, no columnar como BigQuery/ClickHouse</td>
-            <td><span class="tag ok">Sí, nativo</span> — es el motor propio de AWS; no existe fuera de AWS</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="callout">
-      <div class="ico">🎯</div>
-      <p><b>Para este pipeline (analítica de eventos, no transacciones de un usuario a la vez), BigQuery y ClickHouse
-      encajan mejor por diseño</b> — están optimizados para escanear/agregar muchas filas de golpe, que es
-      exactamente lo que hace un reporte o dashboard sobre eventos de STB. DynamoDB y Aurora brillan cuando la
-      necesidad es al revés: leer o escribir una fila específica lo más rápido posible (ej. "dame el estado de
-      esta cuenta ahora mismo") — algo que este pipeline no pide hoy.</p>
-    </div>
-    <div class="callout warn">
-      <div class="ico">💰</div>
-      <p><b>Para este volumen (bajo), ClickHouse Cloud sale más barato que autoalojado</b> — algo que no
-      esperábamos: usando el tier <b>Scale</b> (~$499/mes mínimo, para tener HA real) + almacenamiento
-      ($0.0253/GB-mes), sale en <b>~$522/mes a volumen móvil</b> y <b>~$720/mes a volumen STB medio</b> — menos que
-      los $881.52/$894.54 del clúster autoalojado de 3 nodos en EC2. La razón: a este volumen tan chico, el piso
-      de autoalojado (3 VMs completas encendidas 24/7) pesa más que el mínimo comprometido de Cloud. Esto se
-      invierte a volúmenes grandes (el caso real de arriba lo confirma) — la ventaja de costo de autoalojado
-      aparece cuando ya se justifica tener la infraestructura a tope de uso, no antes.</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head"><h2>Pros y contras</h2></div>
-    <div class="qual-grid">
-      <div class="qual-card">
-        <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
-        <ul>
-          <li><b>Pro:</b> ya lo usan hoy, Kafka Sink Connector oficial, sin infraestructura que operar — de las opciones más baratas a este volumen</li>
-          <li><b>Pro:</b> límite de tamaño más alto de los 5 (10 MB) y excelente para analítica ad-hoc sobre las tablas KPIS.* existentes</li>
-          <li><b>Contra:</b> el costo depende totalmente del diseño de la tabla</li>
-        </ul>
-      </div>
-      <div class="qual-card">
-        <h3><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</h3>
-        <ul>
-          <li><b>Pro:</b> latencia de escritura muy baja, escala sola sin administración</li>
-          <li><b>Contra:</b> el límite de tamaño más estrecho de los 5 (400 KB, sin excepción) — el primero en romperse si el evento crece</li>
-          <li><b>Contra:</b> sin capacidad analítica propia — necesitarías otro motor para reportes; almacenamiento por GB de los más caros</li>
-        </ul>
-      </div>
-      <div class="qual-card">
-        <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
-        <ul>
-          <li><b>Pro:</b> el motor OLAP pensado exactamente para este patrón; conexión Kafka nativa, sin conector externo</li>
-          <li><b>Contra:</b> a este volumen real (bajo) sale más caro que ClickHouse Cloud — su infraestructura fija (3 VMs 24/7) no baja aunque el tráfico sea chico</li>
-          <li><b>Contra:</b> es la única opción sin nada administrado — exige operación real del equipo (parcheo, escalado, respaldo), trabajo que no está en el desglose de $</li>
-        </ul>
-      </div>
-      <div class="qual-card">
-        <h3><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</h3>
-        <ul>
-          <li><b>Pro:</b> mismo motor OLAP y misma conexión Kafka nativa que el autoalojado, pero sin operarlo tú — y a este volumen, más barato ($522–720/mes vs. $882–895/mes)</li>
-          <li><b>Pro:</b> corre en AWS, GCP o Azure — no ata a un solo proveedor de nube</li>
-          <li><b>Contra:</b> el tier Basic no tiene alta disponibilidad real; para eso hace falta Scale, que es lo que se cotizó aquí</li>
-        </ul>
-      </div>
-      <div class="qual-card">
-        <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</h3>
-        <ul>
-          <li><b>Pro:</b> tiene sentido si además necesitan transacciones ACID clásicas en la misma base; el desbordamiento a TEXT/BLOB o TOAST es transparente, no se pierde el dato</li>
-          <li><b>Contra:</b> es una base relacional — no es el patrón natural para un firehose de eventos, y requiere JDBC en vez de un conector Kafka nativo</li>
-          <li><b>Contra:</b> el que peor escala en costo (piso de 8 ACU) y el límite de fila más chico antes de desbordar (~8 KB)</li>
-        </ul>
-      </div>
-    </div>
+  <h2 class="section">Ingesta de eventos y comparativo de arquitecturas</h2>
+  <div class="grid">
+    <a class="card" href="bigquery-vs-dynamodb-clickhouse-aurora.html">
+      <h3>BigQuery vs DynamoDB vs ClickHouse vs Aurora</h3>
+      <p>Estimado de volumen y costo de un nuevo flujo de eventos, comparando los 4 motores.</p>
+    </a>
+    <a class="card" href="arquitectura-ingesta-stb.html">
+      <h3>Arquitectura de Ingesta de Eventos</h3>
+      <p>Qué hay que configurar en cada motor para recibir el flujo de eventos, y qué le toca al emisor.</p>
+    </a>
+    <a class="card" href="ingesta-eventos-stb.html">
+      <h3>Ingesta de Eventos — Volumen Real vs. Estimado</h3>
+      <p>Comparación de volumen y costo detallado (nodos, almacenamiento, tránsito, consultas) entre tráfico real y un escenario proyectado.</p>
+    </a>
+    <a class="card" href="comparativo-backends-stb.html">
+      <h3>Comparativo de Backends</h3>
+      <p>Costo, tránsito, límites de tamaño por evento y ClickHouse Cloud — comparativo completo de los 5 motores.</p>
+    </a>
   </div>
 
   <footer>
-    <p>
-      <b style="color:var(--ink-2)">Fuentes de los límites de tamaño (consultadas el 25 de agosto de 2026):</b>
-      Kafka <code>message.max.bytes</code> ≈1 MB — <a href="https://www.confluent.io/learn/kafka-message-size-limit/" target="_blank" rel="noopener">Confluent, "Apache Kafka Message Size Limit"</a>.
-      DynamoDB 400 KB por ítem — <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html" target="_blank" rel="noopener">AWS, "Constraints in Amazon DynamoDB"</a>.
-      BigQuery Storage Write API, 10 MB por request/fila — <a href="https://cloud.google.com/bigquery/quotas" target="_blank" rel="noopener">Google Cloud, "Quotas and limits"</a>.
-      Aurora MySQL ~8 KB de fila antes de desbordar a TEXT/BLOB; Aurora PostgreSQL, mecanismo TOAST (~2 KB) —
-      <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_Limits.html" target="_blank" rel="noopener">AWS, "Quotas and constraints for Amazon Aurora"</a> y
-      <a href="https://wiki.postgresql.org/wiki/TOAST" target="_blank" rel="noopener">PostgreSQL Wiki, "TOAST"</a>.
-      ClickHouse (autoalojado y Cloud, mismo motor) no impone límite propio de fila/mensaje vía el motor de tabla
-      Kafka — hereda el límite del broker —
-      <a href="https://clickhouse.com/docs/engines/table-engines/integrations/kafka" target="_blank" rel="noopener">ClickHouse Docs, "Kafka table engine"</a>.
-    </p>
-    <p>
-      <b style="color:var(--ink-2)">ClickHouse Cloud (consultado el 26 de agosto de 2026):</b> compute
-      $0.2181/$0.2985/$0.3903 por unidad-hora en Basic/Scale/Enterprise, almacenamiento $25.30/TB-mes en todos los
-      tiers, piso mensual de referencia ~$66 (Basic) y ~$499 (Scale, usado en este reporte por ser el tier con alta
-      disponibilidad real) —
-      <a href="https://clickhouse.com/pricing" target="_blank" rel="noopener">ClickHouse Cloud pricing</a>.
-      Disponibilidad en AWS/GCP/Azure y expansión de ClickPipes a 18 regiones de AWS (abril 2026) —
-      <a href="https://clickhouse.com/docs/whats-new/cloud" target="_blank" rel="noopener">ClickHouse Cloud changelog 2026</a>.
-      Benchmarks de escritura/lectura y comparación con autoalojado —
-      <a href="https://clickhouse.com/blog/what-really-matters-for-performance-lessons-from-a-year-of-benchmarks" target="_blank" rel="noopener">ClickHouse, "What really matters for performance"</a> y
-      <a href="https://www.jusdb.com/blog/clickhouse-cloud-vs-self-hosted-tco-2025" target="_blank" rel="noopener">JusDB, "ClickHouse Cloud vs Self-Hosted TCO"</a>.
-      Cifras de precio de terceros — verificar contra clickhouse.com/pricing antes de decidir.
-    </p>
-    <p>
-      <b style="color:var(--ink-2)">Límites y velocidad de BigQuery, DynamoDB y Aurora:</b> concurrencia de slots
-      on-demand de BigQuery —
-      <a href="https://cloud.google.com/bigquery/quotas" target="_blank" rel="noopener">Google Cloud, "Quotas and limits"</a>.
-      Límite de 20 GSI por tabla y latencia de un dígito de milisegundo en DynamoDB —
-      <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html" target="_blank" rel="noopener">AWS, "Service, account, and table quotas in DynamoDB"</a>.
-      Límite de conexiones por instancia y necesidad de RDS Proxy en Aurora —
-      <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraMySQL.Managing.MaxConnections.html" target="_blank" rel="noopener">AWS, "Maximum connections to an Aurora MySQL DB instance"</a>.
-    </p>
-    <div class="chips">
-      <span class="chip">BigQuery: real</span>
-      <span class="chip">DynamoDB/ClickHouse/ClickHouse Cloud/Aurora: estimado</span>
-      <span class="chip">evento real: 392 B</span>
-      <span class="chip">límite más estrecho: DynamoDB 400 KB</span>
-      <span class="chip">ClickHouse Cloud: AWS/GCP/Azure</span>
-    </div>
+    Reportes generados con datos de BigQuery y precios de lista públicos de cada proveedor. Sin descuentos por compromiso.
   </footer>
 </div>
-
-<script>
-(function(){
-  var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
-  var fmtUSD0 = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:0, maximumFractionDigits:0}); };
-
-  var categories = [
-    {key:'compute', label:'Cómputo / Nodos', color:'var(--cat-compute)'},
-    {key:'storage', label:'Almacenamiento', color:'var(--cat-storage)'},
-    {key:'transit', label:'Tránsito', color:'var(--cat-transit)'},
-    {key:'queries', label:'Consultas / Queries', color:'var(--cat-queries)'}
-  ];
-  var providers = [
-    {name:'BigQuery', color:'var(--prov-bq)',
-      movil:{compute:0, storage:11.40, transit:0, queries:318.32},
-      stb:{compute:0, storage:109.06, transit:0, queries:3044.90}},
-    {name:'DynamoDB', color:'var(--prov-dynamo)',
-      movil:{compute:121.18, storage:228.02, transit:0, queries:0},
-      stb:{compute:1159.21, storage:2181.16, transit:0, queries:0}},
-    {name:'ClickHouse', color:'var(--prov-ch)',
-      movil:{compute:880.00, storage:0, transit:1.52, queries:0},
-      stb:{compute:880.00, storage:0, transit:14.54, queries:0}},
-    {name:'CH Cloud', color:'var(--prov-chc)',
-      movil:{compute:499.00, storage:23.08, transit:0, queries:0},
-      stb:{compute:499.00, storage:220.73, transit:0, queries:0}},
-    {name:'Aurora', color:'var(--prov-aurora)',
-      movil:{compute:911.04, storage:205.22, transit:0, queries:0},
-      stb:{compute:8768.76, storage:1963.05, transit:0, queries:0}}
-  ];
-  var sumVal = function(o){ return o.compute+o.storage+o.transit+o.queries; };
-  providers.forEach(function(p){ p.movil.total=sumVal(p.movil); p.stb.total=sumVal(p.stb); });
-
-  // ================= GROUPED STACKED CHART: móvil vs STB, por proveedor =================
-  (function(){
-    var svg = document.getElementById('stackChart');
-    var padL=70, padR=20, top=30, bottom=390, w=1180-padL-padR;
-    var maxY = 11000;
-    var gridTicks=[0,2750,5500,8250,11000];
-    var n = providers.length;
-    var slot = w/n;
-    var bw = 56, gap = 12;
-    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
-
-    var gridHtml='';
-    gridTicks.forEach(function(t){
-      var gy=y(t);
-      gridHtml += '<line class="stack-grid" x1="'+padL+'" y1="'+gy+'" x2="'+(1180-padR)+'" y2="'+gy+'"></line>';
-      gridHtml += '<text class="stack-axis" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end">$'+t.toLocaleString('en-US')+'</text>';
-    });
-    gridHtml += '<line class="stack-baseline" x1="'+padL+'" y1="'+bottom+'" x2="'+(1180-padR)+'" y2="'+bottom+'"></line>';
-    document.getElementById('stackGrid').innerHTML = gridHtml;
-
-    function drawBar(bx, cx, dataset, provName, volLabel, dashed){
-      var html='', cum=0;
-      categories.forEach(function(c){
-        var val = dataset[c.key];
-        if(val>0){
-          var y0=y(cum), y1=y(cum+val);
-          var h=Math.max(y0-y1,0);
-          html += '<rect class="hit-stack" data-prov="'+provName+'" data-vol="'+volLabel+'" data-cat="'+c.label+'" data-val="'+val.toFixed(2)+'" x="'+bx+'" y="'+y1+'" width="'+bw+'" height="'+h+'" fill="'+c.color+'"'+(dashed?' fill-opacity="0.55"':'')+'></rect>';
-        }
-        cum += val;
-      });
-      html += '<text class="stack-label" x="'+cx+'" y="'+(y(cum)-8)+'" text-anchor="middle" font-size="10">'+fmtUSD0(dataset.total)+'</text>';
-      return html;
-    }
-
-    var html='';
-    providers.forEach(function(p,i){
-      var groupCx = padL + slot*i + slot/2;
-      var x1 = groupCx - gap/2 - bw;
-      var x2 = groupCx + gap/2;
-      html += drawBar(x1, x1+bw/2, p.movil, p.name, 'Móvil', false);
-      html += drawBar(x2, x2+bw/2, p.stb, p.name, 'STB medio', true);
-      html += '<text class="stack-sub" x="'+(x1+bw/2)+'" y="'+(bottom+16)+'" text-anchor="middle">móvil</text>';
-      html += '<text class="stack-sub" x="'+(x2+bw/2)+'" y="'+(bottom+16)+'" text-anchor="middle">STB</text>';
-      html += '<text class="stack-label" x="'+groupCx+'" y="'+(bottom+34)+'" text-anchor="middle" style="fill:'+p.color+'">'+p.name+'</text>';
-    });
-    document.getElementById('stackBars').innerHTML = html;
-
-    var tip = document.getElementById('stackTip');
-    svg.querySelectorAll('.hit-stack').forEach(function(el){
-      el.addEventListener('mousemove', function(e){
-        var prov=el.getAttribute('data-prov'), vol=el.getAttribute('data-vol'), cat=el.getAttribute('data-cat'), val=+el.getAttribute('data-val');
-        tip.innerHTML = '<b>'+prov+'</b> — '+vol+' — '+cat+': <b>'+fmtUSD(val)+'/mes</b>';
-        var rect = svg.getBoundingClientRect();
-        tip.style.left = (e.clientX - rect.left) + 'px';
-        tip.style.top = (e.clientY - rect.top) + 'px';
-        tip.style.opacity = 1;
-      });
-      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
-    });
-  })();
-
-  // ================= TABLE =================
-  (function(){
-    var html='';
-    providers.forEach(function(p){
-      [['Móvil', p.movil], ['STB medio', p.stb]].forEach(function(pair){
-        var label=pair[0], d=pair[1];
-        html += '<tr><td class="name" style="color:'+p.color+'">'+(label==='Móvil'?p.name:'')+'</td>'+
-          '<td>'+label+'</td>'+
-          '<td class="num">'+(d.compute>0?fmtUSD(d.compute):'—')+'</td>'+
-          '<td class="num">'+(d.storage>0?fmtUSD(d.storage):'—')+'</td>'+
-          '<td class="num">'+(d.transit>0?fmtUSD(d.transit):'—')+'</td>'+
-          '<td class="num">'+(d.queries>0?fmtUSD(d.queries):'—')+'</td>'+
-          '<td class="num" style="font-weight:600;color:var(--ink);">'+fmtUSD(d.total)+'</td></tr>';
-      });
-    });
-    document.getElementById('stackTableBody').innerHTML = html;
-  })();
-})();
-</script>
-
+</body>
+</html>

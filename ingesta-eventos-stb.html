@@ -1,0 +1,671 @@
+<title>Ingesta de Eventos STB</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7;
+    --cat-compute:#2a78d6; --cat-storage:#1baf7a; --cat-transit:#e87ba4; --cat-queries:#eda100; --cat-maint:#4a3aa7;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+      --cat-compute:#5b9eec; --cat-storage:#37c290; --cat-transit:#d55181; --cat-queries:#c98500; --cat-maint:#9085e9;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+    --cat-compute:#5b9eec; --cat-storage:#37c290; --cat-transit:#d55181; --cat-queries:#c98500; --cat-maint:#9085e9;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--page); color:var(--ink); font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  h1.section{ font-size:22px; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:84ch; margin-top:4px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:20px 0; }
+  .tile{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px; }
+  .tile .label{ font-size:12px; color:var(--muted); font-weight:500; }
+  .tile .value{ font:600 24px/1.05 "IBM Plex Mono", monospace; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+  .tile .sub{ font-size:12px; color:var(--ink-2); }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:94ch; }
+
+  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 18px; margin-top:14px; }
+  .callout.warn{ border-color:var(--critical); background:rgba(208,59,59,.06); }
+  .callout .ico{ font-size:18px; line-height:1.3; }
+  .callout p{ margin:0; font-size:13px; color:var(--ink-2); line-height:1.7; }
+  .callout b{ color:var(--ink); }
+
+  figure{ margin:18px 0 6px; }
+  figure svg{ width:100%; height:auto; display:block; }
+  figcaption{ font-size:12px; color:var(--muted); text-align:center; margin-top:10px; }
+  .dbox{ fill:var(--surface-2); stroke:var(--border); stroke-width:1.5; }
+  .dbox.done{ stroke:var(--good); stroke-dasharray:0; }
+  .dbox.open{ stroke:var(--accent); stroke-width:2.2; }
+  .dtext{ fill:var(--ink); font-family:"IBM Plex Sans", sans-serif; }
+  .dsub{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; }
+  .darrow{ stroke:var(--ink-2); stroke-width:1.5; fill:none; }
+  .dlabel{ fill:var(--ink-2); font-family:"IBM Plex Mono", monospace; }
+
+  .legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink-2); font-weight:500; }
+  .legend i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+  ol.steps{ margin:10px 0 0; padding-left:20px; font-size:13px; color:var(--ink-2); line-height:1.85; }
+  ol.steps li b{ color:var(--ink); }
+
+  .provider-block{ border:1px solid var(--border); border-radius:14px; padding:22px 24px; margin-top:18px; }
+  .provider-block h3{ margin:0 0 3px; font-size:17px; display:flex; align-items:center; gap:9px; }
+  .provider-block .sub{ font-size:12.5px; color:var(--muted); margin:0 0 14px; }
+  .swatch{ display:inline-block; width:9px; height:9px; border-radius:50%; }
+  .info-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; margin-bottom:14px; }
+  .info-item{ background:var(--surface-2); border-radius:10px; padding:11px 13px; }
+  .info-item .k{ font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:600; margin-bottom:4px; }
+  .info-item .v{ font-size:12.5px; color:var(--ink); line-height:1.55; }
+
+  .tblwrap{ overflow-x:auto; margin-top:12px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+  thead th{ text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); padding:9px 13px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:9px 13px; border-bottom:1px solid var(--border); color:var(--ink-2); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+
+  .barlist{ display:flex; flex-direction:column; gap:14px; margin-top:16px; }
+  .barrow{ display:grid; grid-template-columns:190px 1fr 130px; align-items:center; gap:10px; }
+  .barrow .who{ font-size:13px; font-weight:500; color:var(--ink); display:flex; align-items:center; gap:7px; }
+  .barrow .who small{ display:block; font:400 11px "IBM Plex Mono",monospace; color:var(--muted); font-weight:400; }
+  .track{ background:var(--surface-2); border-radius:6px; height:20px; position:relative; overflow:hidden; }
+  .fill{ position:absolute; inset:0 auto 0 0; border-radius:6px; }
+  .barrow .amt{ text-align:right; font:600 13px "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+
+  .stackchart-wrap{ position:relative; margin-top:16px; }
+  .stackchart-wrap svg{ width:100%; height:auto; display:block; }
+  .stack-axis{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:10.5px; }
+  .stack-grid{ stroke:var(--border); stroke-width:1; }
+  .stack-baseline{ stroke:var(--ink-2); stroke-width:1; }
+  .stack-label{ fill:var(--ink); font-family:"IBM Plex Sans", sans-serif; font-size:11px; font-weight:600; }
+  .stack-sub{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; font-size:9px; }
+  .stack-tooltip{
+    position:absolute; pointer-events:none; background:#FFFFFF; color:#101820;
+    font:500 12px/1.5 "IBM Plex Mono", monospace; padding:8px 10px; border-radius:8px;
+    border:1px solid #DCE3EA; box-shadow:var(--shadow); opacity:0; transform:translate(-50%,-108%);
+    transition:opacity .1s; white-space:nowrap; z-index:5;
+  }
+  .stack-tooltip b{ color:#0B0F14; }
+
+  .qual-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px; margin-top:16px; }
+  .qual-card{ border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:var(--surface-2); }
+  .qual-card h3{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .qual-card ul{ margin:0; padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.7; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:98ch; margin:0 0 8px; }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>basado en "Estadísticas y Eventos Arquitectura" (propuesta de Dev) · estimado, no facturación real</div>
+    <h1>Ingesta de eventos STB: volumen, costo y arquitectura</h1>
+    <div class="subtitle">
+      Reporte consolidado leyendo el documento de arquitectura que propuso el equipo de Dev. Se quitaron las
+      proyecciones estimadas a mano (el ×100 y el dato de 75M eventos/día) por no ser datos firmes — en su lugar,
+      el volumen usado aquí es el <b>tráfico real ya medido</b> de las apps móviles (Android + iOS), y el costo
+      detallado (nodos/cómputo, almacenamiento, tránsito, consultas) de
+      <b>BigQuery, DynamoDB, ClickHouse y Aurora</b> como la pieza de "Persistencia / Storage" que su propio
+      diagrama marca como <b>tecnología por definir</b>.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Lo que Dev ya definió (y lo que sigue abierto)</h2>
+      <div class="meta">del PDF de arquitectura, páginas 4–5</div>
+    </div>
+    <div class="card-note">
+      Dato clave que cambia el enfoque: el transporte de eventos <b>ya está decidido</b> — STB → MQTT → Kafka →
+      Worker de enriquecimiento. Lo que su propio diagrama marca como <b>"Tecnología TBD"</b> es solo el paso de
+      <b>Persistencia/Storage</b>, con "Oracle, Aurora u otra tecnología similar" como ejemplos que ellos mismos
+      mencionan. Ahí es exactamente donde compiten las 4 opciones de este reporte.
+    </div>
+    <figure>
+      <svg viewBox="0 0 980 260" role="img" aria-label="El pipeline propuesto por Dev: el STB publica eventos por MQTT hacia un broker, que los pasa por un bridge a un tópico Kafka crudo; un worker de enriquecimiento los consume y publica a un tópico Kafka enriquecido; desde ahí, sink connectors reparten los datos hacia dos destinos en paralelo: la capa de Persistencia/Storage, marcada como tecnología por definir entre Oracle, Aurora u otra similar, y el Data Lake para replicación analítica.">
+        <defs>
+          <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor" class="dlabel"></path>
+          </marker>
+        </defs>
+        <!-- decidido: STB -> MQTT -> Broker -> Bridge -> Kafka raw -> Worker -> Kafka enriched -->
+        <rect class="dbox done" x="10" y="95" width="90" height="50" rx="8"></rect>
+        <text class="dtext" x="55" y="116" text-anchor="middle" font-size="11" font-weight="600">STB</text>
+        <text class="dsub" x="55" y="130" text-anchor="middle" font-size="8">MQTT client</text>
+
+        <line class="darrow" x1="100" y1="120" x2="123" y2="120" marker-end="url(#arrow2)"></line>
+        <rect class="dbox done" x="125" y="95" width="90" height="50" rx="8"></rect>
+        <text class="dtext" x="170" y="116" text-anchor="middle" font-size="10.5" font-weight="600">MQTT</text>
+        <text class="dtext" x="170" y="129" text-anchor="middle" font-size="10.5" font-weight="600">Broker</text>
+
+        <line class="darrow" x1="215" y1="120" x2="238" y2="120" marker-end="url(#arrow2)"></line>
+        <rect class="dbox done" x="240" y="95" width="90" height="50" rx="8"></rect>
+        <text class="dtext" x="285" y="116" text-anchor="middle" font-size="10.5" font-weight="600">Bridge</text>
+        <text class="dsub" x="285" y="130" text-anchor="middle" font-size="8">MQTT→Kafka</text>
+
+        <line class="darrow" x1="330" y1="120" x2="353" y2="120" marker-end="url(#arrow2)"></line>
+        <rect class="dbox done" x="355" y="95" width="95" height="50" rx="8"></rect>
+        <text class="dtext" x="402" y="113" text-anchor="middle" font-size="10">Kafka</text>
+        <text class="dtext" x="402" y="126" text-anchor="middle" font-size="10">raw</text>
+        <text class="dsub" x="402" y="138" text-anchor="middle" font-size="7.5">tv-events-raw</text>
+
+        <line class="darrow" x1="450" y1="120" x2="473" y2="120" marker-end="url(#arrow2)"></line>
+        <rect class="dbox done" x="475" y="95" width="95" height="50" rx="8"></rect>
+        <text class="dtext" x="522" y="113" text-anchor="middle" font-size="10">Worker</text>
+        <text class="dtext" x="522" y="126" text-anchor="middle" font-size="10">enriquecimiento</text>
+
+        <line class="darrow" x1="570" y1="120" x2="593" y2="120" marker-end="url(#arrow2)"></line>
+        <rect class="dbox done" x="595" y="95" width="95" height="50" rx="8"></rect>
+        <text class="dtext" x="642" y="113" text-anchor="middle" font-size="10">Kafka</text>
+        <text class="dtext" x="642" y="126" text-anchor="middle" font-size="10">enriquecido</text>
+        <text class="dsub" x="642" y="138" text-anchor="middle" font-size="7.5">tv-events-enriched</text>
+
+        <!-- Sink connectors: bifurca -->
+        <line class="darrow" x1="690" y1="120" x2="705" y2="120"></line>
+        <line class="darrow" x1="705" y1="120" x2="705" y2="70" ></line>
+        <line class="darrow" x1="705" y1="120" x2="705" y2="180"></line>
+        <line class="darrow" x1="705" y1="70" x2="723" y2="70" marker-end="url(#arrow2)"></line>
+        <line class="darrow" x1="705" y1="180" x2="723" y2="180" marker-end="url(#arrow2)"></line>
+
+        <!-- Storage TBD (abierto) -->
+        <rect class="dbox open" x="725" y="45" width="235" height="50" rx="8"></rect>
+        <text class="dtext" x="842" y="65" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--accent)">Persistencia / Storage</text>
+        <text class="dsub" x="842" y="80" text-anchor="middle" font-size="8.5">TBD — BigQuery / DynamoDB / ClickHouse / Aurora</text>
+
+        <!-- Data Lake -->
+        <rect class="dbox done" x="725" y="155" width="235" height="50" rx="8"></rect>
+        <text class="dtext" x="842" y="176" text-anchor="middle" font-size="11" font-weight="600">Data Lake</text>
+        <text class="dsub" x="842" y="190" text-anchor="middle" font-size="8">raw + curated/enriched zone</text>
+
+        <!-- leyenda -->
+        <rect x="10" y="225" width="14" height="14" rx="3" class="dbox done"></rect>
+        <text class="dlabel" x="30" y="236" font-size="10">ya definido por Dev</text>
+        <rect x="180" y="225" width="14" height="14" rx="3" class="dbox open"></rect>
+        <text class="dlabel" x="200" y="236" font-size="10">abierto — foco de este reporte</text>
+      </svg>
+      <figcaption>El transporte (MQTT→Kafka→Worker) ya está decidido. Las 4 opciones compiten solo por el paso "Persistencia/Storage", conectadas vía Kafka Sink Connectors.</figcaption>
+    </figure>
+    <div class="callout">
+      <div class="ico">🔧</div>
+      <p><b>Esto corrige/afina el reporte anterior de arquitectura:</b> como Kafka ya es el transporte para las 4
+      opciones por igual, no hace falta un pipeline de ingesta distinto por cada base (Pub/Sub solo para BigQuery,
+      IoT Core solo para DynamoDB, etc.) — cada backend se conecta a <code>tv-events-enriched</code> con su propio
+      <b>Kafka Sink Connector</b> (existen conectores oficiales/comunitarios para los 4). El "Data Lake" del
+      diagrama es un destino aparte (probablemente object storage tipo S3/GCS con zonas raw/curated) y no compite
+      directamente con las 4 opciones de este reporte.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Volumen de eventos: móvil real vs. STB estimado</h2>
+      <div class="meta">una sola comparación, de punta a punta</div>
+    </div>
+    <div class="card-note">
+      Se quitaron el ×100 y el dato de 75M/día por ser cálculos hechos a mano, no mediciones. La fila "Móvil" es
+      tráfico <b>100% real</b> (Android + iOS); las filas de STB son un <b>estimado razonado</b> desde la
+      arquitectura del PDF de Dev, no un multiplicador a ojo.
+    </div>
+    <ol class="steps">
+      <li><b>Se desglosó el 73.72 ev/s real por tipo de evento:</b> <code>vista</code> es el 35.69% (26.31 ev/s)
+      — el candidato natural a "impresión de pantalla". El resto (<code>clic</code>, <code>enlace</code>,
+      <code>busqueda</code>, etc.: 47.41 ev/s) son acciones 1:1 del usuario, que no tendrían por qué multiplicarse
+      solo por cambiar de dispositivo — se dejan igual en las 3 filas de STB.</li>
+      <li><b>Solo se expande la parte de <code>vista</code>:</b> el ejemplo real del PDF (página 6) muestra
+      <b>5 elementos</b> en una sola lista visible (<code>"populares_para_ti"</code>). Ese 5 no es inventado, es
+      el tamaño real de su propio ejemplo — <code>vista</code> se multiplica ×(listas visibles × 5).</li>
+      <li><b>La única variable asumida:</b> cuántas listas/rieles están visibles en pantalla a la vez en la
+      interfaz del STB — eso no está en el PDF, por eso van 3 escenarios (3, 5 y 8 listas) en vez de un solo
+      número. El tamaño del evento (392 B) es real, medido del JSON de ejemplo del PDF y cruzado contra el
+      promedio real de fila de <code>KPIS.EventMKP</code> (385 B) — dos fuentes independientes que coinciden.</li>
+    </ol>
+
+    <div class="legend">
+      <span><i style="background:var(--prov-bq)"></i>Móvil (real)</span>
+      <span><i style="background:var(--cat-maint)"></i>STB (estimado)</span>
+    </div>
+    <div class="chart-wrap" style="position:relative; margin-top:12px;">
+      <svg id="volChart" viewBox="0 0 900 300" role="img" aria-label="Comparación de eventos por segundo: móvil real 73.72, STB escenario bajo 442.1, STB escenario medio 705.2, STB escenario alto 1099.9.">
+        <g id="volGrid"></g>
+        <g id="volBars"></g>
+      </svg>
+      <div class="stack-tooltip" id="volTip"></div>
+    </div>
+
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Fuente</th><th class="num">Eventos/seg</th><th class="num">vs. móvil</th><th class="num">GB/día</th><th class="num">GB/mes</th><th class="num">GB acc. mes 12</th><th class="num">TiB/año</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Móvil (real, medido)</td><td class="num">73.72</td><td class="num">1.00×</td><td class="num">2.50</td><td class="num">76.0</td><td class="num">912.1</td><td class="num">0.89</td></tr>
+          <tr><td class="name">STB — bajo (3 listas × 5 items)</td><td class="num">442.1</td><td class="num">6.00×</td><td class="num">14.97</td><td class="num">455.8</td><td class="num">5,469.5</td><td class="num">5.34</td></tr>
+          <tr class="total"><td class="name">STB — medio (5 listas × 5 items)</td><td class="num">705.2</td><td class="num">9.57×</td><td class="num">23.88</td><td class="num">727.0</td><td class="num">8,724.4</td><td class="num">8.51</td></tr>
+          <tr><td class="name">STB — alto (8 listas × 5 items)</td><td class="num">1,099.9</td><td class="num">14.92×</td><td class="num">37.25</td><td class="num">1,134.0</td><td class="num">13,607.5</td><td class="num">13.28</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-note" style="margin-top:10px;">Todas las filas usan el tamaño de evento medio (392 B, ancla real). El resto del reporte usa el escenario <b>STB — medio</b> para los costos.</div>
+
+    <div class="callout">
+      <div class="ico">🎯</div>
+      <p>El rango de STB (6×–15× móvil) es mucho más chico y defendible que el ×100 original — y sigue siendo
+      una <b>estimación</b>, no una medición. El número real de "listas visibles simultáneas" lo tiene el equipo
+      de diseño de UI del STB, no este reporte; en cuanto lo confirmen, este cálculo se ajusta con un solo dato.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Del volumen al costo — móvil vs. STB, un solo gráfico</h2>
+      <div class="meta">mes 12 · escenario medio (392 B) · sin mantenimiento</div>
+    </div>
+    <div class="card-note">
+      Continuando la comparación de arriba: por cada proveedor, dos barras una junto a la otra — el costo a
+      volumen móvil (73.72 ev/s) y el costo al volumen estimado de STB (705.2 ev/s). Cada color es un componente
+      de costo. Se quitó "Mantenimiento" del desglose — ese trabajo lo cubre el equipo, no es un costo de
+      proveedor.
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
+      <span><i style="background:var(--cat-storage)"></i>Almacenamiento</span>
+      <span><i style="background:var(--cat-transit)"></i>Tránsito</span>
+      <span><i style="background:var(--cat-queries)"></i>Consultas / Queries</span>
+    </div>
+    <div class="stackchart-wrap">
+      <svg id="stackChart" viewBox="0 0 1000 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB, dominado por consultas; DynamoDB 349.20 dólares móvil y 3340.37 STB, entre escritura y almacenamiento; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB, prácticamente sin cambio porque su infraestructura ya está paga; Aurora 1116.26 dólares móvil y 10731.81 STB, el que más escala con el volumen.">
+        <g id="stackGrid"></g>
+        <g id="stackBars"></g>
+      </svg>
+      <div class="stack-tooltip" id="stackTip"></div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Proveedor</th><th>Volumen</th><th class="num">Cómputo/Nodos</th><th class="num">Almacenamiento</th><th class="num">Tránsito</th><th class="num">Queries</th><th class="num">Total/mes</th></tr></thead>
+        <tbody id="stackTableBody"></tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <div class="ico">🔀</div>
+      <p><b>El cruce se ve directo en el gráfico:</b> a volumen móvil, BigQuery y DynamoDB ganan por ser 100%
+      pago-por-uso (~$330–350/mes); ClickHouse ya paga su infraestructura fija (~$882/mes) aunque el tráfico sea
+      chico. Al volumen de STB, <b>ClickHouse casi no sube</b> ($895/mes — su infraestructura ya estaba pagada),
+      mientras BigQuery y DynamoDB suben ~9-10× (a ~$3,150–3,340/mes) y <b>Aurora se dispara</b> a ~$10,732/mes,
+      el que peor escala de los 4 porque su cómputo crece directo con el volumen.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Desglose detallado por proveedor</h2>
+      <div class="meta">licencia · dónde vive el almacenamiento · cómputo · tránsito</div>
+    </div>
+    <div class="card-note">Costos mes 12, a la tasa real (73.72 eventos/seg), escenario medio (392 B/evento).</div>
+
+    <!-- BigQuery -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
+      <p class="sub">Se conecta a Kafka vía el conector oficial de Kafka Connect para BigQuery (Sink Connector)</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — servicio administrado, se paga por uso</div></div>
+        <div class="info-item"><div class="k">Almacenamiento</div><div class="v">Storage columnar propio de Google, distribuido y replicado automáticamente</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">Serverless — pagas por bytes escaneados en cada query, no por clúster</div></div>
+        <div class="info-item"><div class="k">Tránsito</div><div class="v">Ingreso desde el Sink Connector (misma región) sin costo; no hay salida a internet en este pipeline</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td></tr>
+            <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, mes 12)</td><td class="num">$11.40</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
+            <tr><td class="name">Queries ($6.25/TiB, bien diseñada, escalado desde el ancla real de EventMKP)</td><td class="num">$318.32</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$329.72</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DynamoDB -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</h3>
+      <p class="sub">Se conecta vía Kafka Connect Sink Connector para DynamoDB (o AWS Lambda como consumidor de Kafka)</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — servicio administrado de AWS</div></div>
+        <div class="info-item"><div class="k">Almacenamiento</div><div class="v">Storage SSD propio y distribuido de DynamoDB (no es S3)</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">On-Demand por unidad de lectura/escritura (WRU/RRU)</div></div>
+        <div class="info-item"><div class="k">Tránsito</div><div class="v">Replicación interna entre zonas de disponibilidad incluida en el servicio, sin costo aparte</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Escritura ($0.625/millón WRU)</td><td class="num">$121.18</td></tr>
+            <tr><td class="name">Almacenamiento Standard ($0.25/GB-mes, mes 12)</td><td class="num">$228.02</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
+            <tr><td class="name">Lectura / analítica</td><td class="num" style="text-align:left;">no disponible — requeriría exportar a otro motor</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$349.20</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ClickHouse -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
+      <p class="sub">Se conecta vía una tabla con motor Kafka nativo de ClickHouse — consume directo de <code>tv-events-enriched</code>, sin conector externo</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — Apache 2.0, software libre</div></div>
+        <div class="info-item"><div class="k">Almacenamiento</div><div class="v">Disco local/EBS del servidor — a este volumen, va incluido en el costo de la VM, no se factura aparte</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">VM(s) propias, encendidas 24/7 — no es serverless; 3 nodos es el piso práctico de alta disponibilidad, aunque el tráfico real sea chico</div></div>
+        <div class="info-item"><div class="k">Tránsito</div><div class="v">Único caso con costo explícito: replicación entre nodos si están en zonas de disponibilidad distintas (~$0.01/GB cross-AZ)</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Infraestructura (clúster HA, 3 nodos AWS — piso práctico)</td><td class="num">$880.00</td></tr>
+            <tr><td class="name">Almacenamiento</td><td class="num">incluido</td></tr>
+            <tr><td class="name">Tránsito inter-nodo (replicación ≈2× la ingesta, cross-AZ $0.01/GB)</td><td class="num">$1.52</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$881.52</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Aurora -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</h3>
+      <p class="sub">Se conecta vía Kafka Connect JDBC Sink Connector; motor relacional, no el patrón natural para este pipeline</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 — motor propio de AWS</div></div>
+        <div class="info-item"><div class="k">Almacenamiento</div><div class="v">Capa distribuida propia de Aurora, replicada en 3 zonas de disponibilidad automáticamente</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">Serverless v2 (ACU auto-escalable), modo I/O-Optimized; 8 ACU es el piso práctico</div></div>
+        <div class="info-item"><div class="k">Tránsito</div><div class="v">Replicación entre las 3 zonas de disponibilidad incluida en el servicio, sin costo aparte</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Cómputo (Serverless v2, 8 ACU mínimo × $0.156/hr)</td><td class="num">$911.04</td></tr>
+            <tr><td class="name">Almacenamiento I/O-Optimized ($0.225/GB-mes, mes 12)</td><td class="num">$205.22</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$1,116.26</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Pros y contras</h2></div>
+    <div class="qual-grid">
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
+        <ul>
+          <li><b>Pro:</b> ya lo usan hoy, hay Kafka Sink Connector oficial, sin infraestructura que operar — de las opciones más baratas a este volumen</li>
+          <li><b>Pro:</b> excelente para analítica ad-hoc y cruces con las tablas KPIS.* existentes</li>
+          <li><b>Contra:</b> el costo depende totalmente del diseño de la tabla — mal particionada, se dispara (lección de EventMKP)</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</h3>
+        <ul>
+          <li><b>Pro:</b> latencia de escritura muy baja, escala sola sin administración</li>
+          <li><b>Contra:</b> sin capacidad analítica — necesitarías otro motor para reportes</li>
+          <li><b>Contra:</b> almacenamiento por GB es de los más caros de los 4</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
+        <ul>
+          <li><b>Pro:</b> el motor OLAP pensado exactamente para este patrón; se integra directo con Kafka (tabla motor Kafka nativa), sin conector externo</li>
+          <li><b>Contra:</b> a este volumen real (bajo) es el más caro de los 4 — su infraestructura fija no baja aunque el tráfico sea chico</li>
+          <li><b>Contra:</b> es la única opción sin nada administrado — exige que el equipo tenga experiencia real de operación de bases de datos (parcheo, escalado, respaldo); no está en el desglose de $ de este reporte, pero es un trabajo real</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</h3>
+        <ul>
+          <li><b>Pro:</b> tiene sentido si además necesitan transacciones ACID clásicas en la misma base</li>
+          <li><b>Contra:</b> es una base relacional — no es el patrón natural para un firehose de eventos</li>
+          <li><b>Contra:</b> el piso de 8 ACU ya lo pone por encima de BigQuery/DynamoDB a este volumen, sin necesitarlo realmente todavía</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Metodología:</b> volumen = 73.72 eventos/seg reales (<code>KPIS.EventMKP</code>,
+      semana del 10 ago 2026, 100% Android + iOS confirmado por columna <code>platform</code>) — sin multiplicador,
+      es tráfico ya medido. Tamaño de evento "medio" = 392 B, del JSON de ejemplo del PDF de Dev (evento
+      <code>element_click</code>, compactado), cruzado contra el promedio real de fila de <code>KPIS.EventMKP</code>
+      (385 B). BigQuery: $6.25/TiB on-demand para queries (costo escalado proporcional al volumen de este pipeline
+      contra el ancla real de EventMKP bien diseñada, ~$10.47/día a ~2.5 GB/día), $0.02/GB activo + $0.01/GB largo
+      plazo almacenamiento. DynamoDB On-Demand: $0.625/millón WRU, $0.25/GB-mes almacenamiento. ClickHouse
+      autoalojado: $880/mes de infraestructura (3 nodos, piso práctico de alta disponibilidad, referencia AWS),
+      tránsito inter-nodo estimado como 2× el volumen ingerido a $0.01/GB cross-AZ (supuesto, ajustable). No se
+      incluye un costo de mantenimiento/operación humana — es trabajo real del equipo, pero no es un cargo de
+      ningún proveedor, así que se deja fuera del desglose en dólares. Aurora Serverless v2 I/O-Optimized: $0.156/ACU-hora (8 ACU
+      mínimo), $0.225/GB-mes almacenamiento. Precios de lista, sin descuentos por compromiso, consultados el
+      19–20 de agosto de 2026.
+    </p>
+    <p>
+      <b style="color:var(--ink-2)">Estimado de eventos STB:</b> se desglosó el 73.72 ev/s real de
+      <code>KPIS.EventMKP</code> por <code>event_name</code> (semana del 10 ago 2026). La categoría
+      <code>vista</code> (35.69%, 26.31 ev/s) se trató como equivalente a una impresión de pantalla y se expandió
+      ×(listas visibles × 5 ítems/lista) — el 5 viene del ejemplo real de <code>list_impression</code> en la
+      página 6 del PDF de Dev. El resto de categorías (<code>clic</code>, <code>enlace</code>, <code>busqueda</code>,
+      etc., 47.41 ev/s) se dejó igual que en móvil, sin multiplicar. La única variable asumida es el número de
+      listas visibles simultáneas en pantalla (3/5/8, dando 6×/9.57×/14.92× vs. móvil) — no está documentado en
+      el PDF y debe confirmarse con el equipo de diseño de UI del STB.
+    </p>
+    <p>Este reporte reemplaza/afina la arquitectura de ingesta propuesta en el reporte "Arquitectura de Ingesta STB" anterior, ahora alineada al pipeline real que definió Dev (MQTT→Kafka ya decidido; Storage es lo abierto), y sin las proyecciones estimadas a mano de la versión previa de este mismo reporte.</p>
+    <div class="chips">
+      <span class="chip">basado en PDF de Dev</span>
+      <span class="chip">volumen 100% real</span>
+      <span class="chip">evento real: 392 B</span>
+      <span class="chip">Kafka ya decidido</span>
+      <span class="chip">estimado, no factura</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
+  var fmtUSD0 = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:0, maximumFractionDigits:0}); };
+  var css = function(v){ return getComputedStyle(document.body).getPropertyValue(v).trim() || v; };
+
+  var categories = [
+    {key:'compute', label:'Cómputo / Nodos', color:'var(--cat-compute)'},
+    {key:'storage', label:'Almacenamiento', color:'var(--cat-storage)'},
+    {key:'transit', label:'Tránsito', color:'var(--cat-transit)'},
+    {key:'queries', label:'Consultas / Queries', color:'var(--cat-queries)'}
+  ];
+  var providers = [
+    {name:'BigQuery', color:'var(--prov-bq)',
+      movil:{compute:0, storage:11.40, transit:0, queries:318.32},
+      stb:{compute:0, storage:109.06, transit:0, queries:3044.90}},
+    {name:'DynamoDB', color:'var(--prov-dynamo)',
+      movil:{compute:121.18, storage:228.02, transit:0, queries:0},
+      stb:{compute:1159.21, storage:2181.16, transit:0, queries:0}},
+    {name:'ClickHouse', color:'var(--prov-ch)',
+      movil:{compute:880.00, storage:0, transit:1.52, queries:0},
+      stb:{compute:880.00, storage:0, transit:14.54, queries:0}},
+    {name:'Aurora', color:'var(--prov-aurora)',
+      movil:{compute:911.04, storage:205.22, transit:0, queries:0},
+      stb:{compute:8768.76, storage:1963.05, transit:0, queries:0}}
+  ];
+  var sumVal = function(o){ return o.compute+o.storage+o.transit+o.queries; };
+  providers.forEach(function(p){ p.movil.total=sumVal(p.movil); p.stb.total=sumVal(p.stb); });
+
+  // ================= VOLUME COMPARISON CHART (móvil vs STB) =================
+  (function(){
+    var svg = document.getElementById('volChart');
+    var padL=60, padR=20, top=20, bottom=250, w=900-padL-padR;
+    var maxY = 1200;
+    var data = [
+      {name:'Móvil', sub:'real, medido', value:73.72, color:'var(--prov-bq)'},
+      {name:'STB bajo', sub:'3 listas × 5 items', value:442.1, color:'var(--cat-maint)'},
+      {name:'STB medio', sub:'5 listas × 5 items', value:705.2, color:'var(--cat-maint)'},
+      {name:'STB alto', sub:'8 listas × 5 items', value:1099.9, color:'var(--cat-maint)'}
+    ];
+    var n = data.length;
+    var slot = w/n, bw = slot*0.5;
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+
+    var gridTicks=[0,300,600,900,1200], gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy=y(t);
+      gridHtml += '<line class="stack-grid" x1="'+padL+'" y1="'+gy+'" x2="'+(900-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="stack-axis" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end">'+t+'</text>';
+    });
+    gridHtml += '<line class="stack-baseline" x1="'+padL+'" y1="'+bottom+'" x2="'+(900-padR)+'" y2="'+bottom+'"></line>';
+    document.getElementById('volGrid').innerHTML = gridHtml;
+
+    var html='';
+    data.forEach(function(d,i){
+      var cx = padL + slot*i + slot/2;
+      var bx = cx - bw/2;
+      var by = y(d.value);
+      var op = d.name==='Móvil' ? 1 : (0.55 + 0.15*i);
+      html += '<rect class="hit-vol" data-i="'+i+'" x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+(bottom-by)+'" rx="6" fill="'+d.color+'" fill-opacity="'+op+'"></rect>';
+      html += '<text class="stack-label" x="'+cx+'" y="'+(by-10)+'" text-anchor="middle">'+d.value.toLocaleString('en-US',{maximumFractionDigits:1})+'</text>';
+      html += '<text class="stack-label" x="'+cx+'" y="'+(bottom+22)+'" text-anchor="middle" style="fill:'+d.color+'">'+d.name+'</text>';
+      html += '<text class="stack-sub" x="'+cx+'" y="'+(bottom+34)+'" text-anchor="middle">'+d.sub+'</text>';
+    });
+    document.getElementById('volBars').innerHTML = html;
+
+    var tip = document.getElementById('volTip');
+    svg.querySelectorAll('.hit-vol').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var d = data[+el.getAttribute('data-i')];
+        tip.innerHTML = '<b>'+d.name+'</b> ('+d.sub+')<br>'+d.value.toLocaleString('en-US',{maximumFractionDigits:1})+' eventos/seg';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= GROUPED STACKED CHART: móvil vs STB, por proveedor =================
+  (function(){
+    var svg = document.getElementById('stackChart');
+    var padL=70, padR=20, top=30, bottom=390, w=1000-padL-padR;
+    var maxY = 11000;
+    var gridTicks=[0,2750,5500,8250,11000];
+    var n = providers.length;
+    var slot = w/n;
+    var bw = 62, gap = 14;
+    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
+
+    var gridHtml='';
+    gridTicks.forEach(function(t){
+      var gy=y(t);
+      gridHtml += '<line class="stack-grid" x1="'+padL+'" y1="'+gy+'" x2="'+(1000-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<text class="stack-axis" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end">$'+t.toLocaleString('en-US')+'</text>';
+    });
+    gridHtml += '<line class="stack-baseline" x1="'+padL+'" y1="'+bottom+'" x2="'+(1000-padR)+'" y2="'+bottom+'"></line>';
+    document.getElementById('stackGrid').innerHTML = gridHtml;
+
+    function drawBar(bx, cx, dataset, provName, volLabel, dashed){
+      var html='', cum=0;
+      categories.forEach(function(c){
+        var val = dataset[c.key];
+        if(val>0){
+          var y0=y(cum), y1=y(cum+val);
+          var h=Math.max(y0-y1,0);
+          html += '<rect class="hit-stack" data-prov="'+provName+'" data-vol="'+volLabel+'" data-cat="'+c.label+'" data-val="'+val.toFixed(2)+'" x="'+bx+'" y="'+y1+'" width="'+bw+'" height="'+h+'" fill="'+c.color+'"'+(dashed?' fill-opacity="0.55"':'')+'></rect>';
+        }
+        cum += val;
+      });
+      html += '<text class="stack-label" x="'+cx+'" y="'+(y(cum)-8)+'" text-anchor="middle" font-size="10">'+fmtUSD0(dataset.total)+'</text>';
+      return html;
+    }
+
+    var html='';
+    providers.forEach(function(p,i){
+      var groupCx = padL + slot*i + slot/2;
+      var x1 = groupCx - gap/2 - bw;
+      var x2 = groupCx + gap/2;
+      html += drawBar(x1, x1+bw/2, p.movil, p.name, 'Móvil', false);
+      html += drawBar(x2, x2+bw/2, p.stb, p.name, 'STB medio', true);
+      html += '<text class="stack-sub" x="'+(x1+bw/2)+'" y="'+(bottom+16)+'" text-anchor="middle">móvil</text>';
+      html += '<text class="stack-sub" x="'+(x2+bw/2)+'" y="'+(bottom+16)+'" text-anchor="middle">STB</text>';
+      html += '<text class="stack-label" x="'+groupCx+'" y="'+(bottom+34)+'" text-anchor="middle" style="fill:'+p.color+'">'+p.name+'</text>';
+    });
+    document.getElementById('stackBars').innerHTML = html;
+
+    var tip = document.getElementById('stackTip');
+    svg.querySelectorAll('.hit-stack').forEach(function(el){
+      el.addEventListener('mousemove', function(e){
+        var prov=el.getAttribute('data-prov'), vol=el.getAttribute('data-vol'), cat=el.getAttribute('data-cat'), val=+el.getAttribute('data-val');
+        tip.innerHTML = '<b>'+prov+'</b> — '+vol+' — '+cat+': <b>'+fmtUSD(val)+'/mes</b>';
+        var rect = svg.getBoundingClientRect();
+        tip.style.left = (e.clientX - rect.left) + 'px';
+        tip.style.top = (e.clientY - rect.top) + 'px';
+        tip.style.opacity = 1;
+      });
+      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+    });
+  })();
+
+  // ================= TABLE =================
+  (function(){
+    var html='';
+    providers.forEach(function(p){
+      [['Móvil', p.movil], ['STB medio', p.stb]].forEach(function(pair){
+        var label=pair[0], d=pair[1];
+        html += '<tr><td class="name" style="color:'+p.color+'">'+(label==='Móvil'?p.name:'')+'</td>'+
+          '<td>'+label+'</td>'+
+          '<td class="num">'+(d.compute>0?fmtUSD(d.compute):'—')+'</td>'+
+          '<td class="num">'+(d.storage>0?fmtUSD(d.storage):'—')+'</td>'+
+          '<td class="num">'+(d.transit>0?fmtUSD(d.transit):'—')+'</td>'+
+          '<td class="num">'+(d.queries>0?fmtUSD(d.queries):'—')+'</td>'+
+          '<td class="num" style="font-weight:600;color:var(--ink);">'+fmtUSD(d.total)+'</td></tr>';
+      });
+    });
+    document.getElementById('stackTableBody').innerHTML = html;
+  })();
+})();
+</script>
