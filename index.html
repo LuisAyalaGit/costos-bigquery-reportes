@@ -113,7 +113,7 @@
 <div class="wrap">
 
   <div class="masthead">
-    <div class="eyebrow"><span class="dot"></span>totalplay-8726e · pipeline STB · BigQuery real, resto estimado</div>
+    <div class="eyebrow"><span class="dot"></span>pipeline de ingesta de eventos STB</div>
     <h1>Comparativo completo: costo, tránsito y límites de tamaño</h1>
     <div class="subtitle">
       Extiende el reporte <b>"Ingesta de eventos STB"</b> (20 ago): la base de <b>BigQuery es sólida</b> — tráfico
@@ -431,12 +431,6 @@
   </div>
 
   <footer>
-    <p>
-      <b style="color:var(--ink-2)">Base real (sin cambios vs. el reporte anterior):</b> 73.72 eventos/seg de
-      <code>KPIS.EventMKP</code> (semana del 10 ago 2026, 100% Android + iOS), evento medio 392 B (JSON de ejemplo
-      del PDF de Dev, cruzado con el promedio real de fila de EventMKP, 385 B). Costos de cómputo/almacenamiento/
-      queries por proveedor: ver metodología completa en <code>reporte_profesional_stb_arquitectura.html</code>.
-    </p>
     <p>
       <b style="color:var(--ink-2)">Fuentes de los límites de tamaño (consultadas el 25 de agosto de 2026):</b>
       Kafka <code>message.max.bytes</code> ≈1 MB — <a href="https://www.confluent.io/learn/kafka-message-size-limit/" target="_blank" rel="noopener">Confluent, "Apache Kafka Message Size Limit"</a>.
