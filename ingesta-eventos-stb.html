@@ -335,7 +335,7 @@
       <h2>Desglose detallado por proveedor</h2>
       <div class="meta">licencia · dónde vive el almacenamiento · cómputo · tránsito</div>
     </div>
-    <div class="card-note">Costos mes 12, a la tasa real (73.72 eventos/seg), escenario medio (392 B/evento).</div>
+    <div class="card-note">Costos mes 12, escenario medio (392 B/evento). Columna "Móvil" a la tasa real medida (73.72 ev/s); columna "STB" al volumen estimado (705.2 ev/s). El costo por consulta usa el mismo precio de lista en ambas columnas — sube en STB porque hay más información que revisar, no porque cueste más por unidad.</div>
 
     <!-- BigQuery -->
     <div class="provider-block">
@@ -349,13 +349,13 @@
       </div>
       <div class="tblwrap">
         <table>
-          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
-            <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td></tr>
-            <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, mes 12)</td><td class="num">$11.40</td></tr>
-            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
-            <tr><td class="name">Consultas (costo por información revisada, con datos reales de referencia)</td><td class="num">$318.32</td></tr>
-            <tr class="total"><td class="name">Total</td><td class="num">$329.72</td></tr>
+            <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td><td class="num">$0</td></tr>
+            <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, mes 12)</td><td class="num">$11.40</td><td class="num">$109.06</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
+            <tr><td class="name">Consultas (costo por información revisada, con datos reales de referencia)</td><td class="num">$318.32</td><td class="num">$3,044.90</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$329.72</td><td class="num">$3,153.96</td></tr>
           </tbody>
         </table>
       </div>
@@ -373,13 +373,13 @@
       </div>
       <div class="tblwrap">
         <table>
-          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
-            <tr><td class="name">Escritura ($0.625/millón WRU)</td><td class="num">$121.18</td></tr>
-            <tr><td class="name">Almacenamiento Standard ($0.25/GB-mes, mes 12)</td><td class="num">$228.02</td></tr>
-            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
-            <tr><td class="name">Lectura / analítica</td><td class="num" style="text-align:left;">no disponible — requeriría exportar a otro motor</td></tr>
-            <tr class="total"><td class="name">Total</td><td class="num">$349.20</td></tr>
+            <tr><td class="name">Escritura ($0.625/millón WRU)</td><td class="num">$121.18</td><td class="num">$1,159.21</td></tr>
+            <tr><td class="name">Almacenamiento Standard ($0.25/GB-mes, mes 12)</td><td class="num">$228.02</td><td class="num">$2,181.16</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
+            <tr><td class="name">Lectura / analítica</td><td class="num" colspan="2" style="text-align:left;">no disponible — requeriría exportar a otro motor</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$349.20</td><td class="num">$3,340.37</td></tr>
           </tbody>
         </table>
       </div>
@@ -397,12 +397,12 @@
       </div>
       <div class="tblwrap">
         <table>
-          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
-            <tr><td class="name">Infraestructura (clúster HA, 3 nodos AWS — piso práctico)</td><td class="num">$880.00</td></tr>
-            <tr><td class="name">Almacenamiento</td><td class="num">incluido</td></tr>
-            <tr><td class="name">Tránsito inter-nodo (replicación ≈2× la ingesta, cross-AZ $0.01/GB)</td><td class="num">$1.52</td></tr>
-            <tr class="total"><td class="name">Total</td><td class="num">$881.52</td></tr>
+            <tr><td class="name">Infraestructura (clúster HA, 3 nodos AWS — piso práctico)</td><td class="num">$880.00</td><td class="num">$880.00</td></tr>
+            <tr><td class="name">Almacenamiento</td><td class="num">incluido</td><td class="num">incluido</td></tr>
+            <tr><td class="name">Tránsito inter-nodo (replicación ≈2× la ingesta, cross-AZ $0.01/GB)</td><td class="num">$1.52</td><td class="num">$14.54</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$881.52</td><td class="num">$894.54</td></tr>
           </tbody>
         </table>
       </div>
@@ -420,12 +420,12 @@
       </div>
       <div class="tblwrap">
         <table>
-          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
-            <tr><td class="name">Cómputo (tier Scale, piso ~$499/mes)</td><td class="num">$499.00</td></tr>
-            <tr><td class="name">Almacenamiento ($0.0253/GB-mes, mes 12)</td><td class="num">$23.08</td></tr>
-            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
-            <tr class="total"><td class="name">Total</td><td class="num">$522.08</td></tr>
+            <tr><td class="name">Cómputo (tier Scale, piso ~$499/mes)</td><td class="num">$499.00</td><td class="num">$499.00</td></tr>
+            <tr><td class="name">Almacenamiento ($0.0253/GB-mes, mes 12)</td><td class="num">$23.08</td><td class="num">$220.73</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$522.08</td><td class="num">$719.73</td></tr>
           </tbody>
         </table>
       </div>
@@ -443,12 +443,12 @@
       </div>
       <div class="tblwrap">
         <table>
-          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
-            <tr><td class="name">Cómputo (Serverless v2, 8 ACU mínimo × $0.156/hr)</td><td class="num">$911.04</td></tr>
-            <tr><td class="name">Almacenamiento I/O-Optimized ($0.225/GB-mes, mes 12)</td><td class="num">$205.22</td></tr>
-            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
-            <tr class="total"><td class="name">Total</td><td class="num">$1,116.26</td></tr>
+            <tr><td class="name">Cómputo (Serverless v2, 8 ACU mínimo × $0.156/hr)</td><td class="num">$911.04</td><td class="num">$8,768.76</td></tr>
+            <tr><td class="name">Almacenamiento I/O-Optimized ($0.225/GB-mes, mes 12)</td><td class="num">$205.22</td><td class="num">$1,963.05</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$1,116.26</td><td class="num">$10,731.81</td></tr>
           </tbody>
         </table>
       </div>

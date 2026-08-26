@@ -212,7 +212,7 @@
       <div class="two-col">
         <div>
           <ol class="steps" style="margin-top:0;">
-            <li>Crear la tabla <b>particionada por fecha</b> y <b>clusterizada</b> por los campos que más se van a filtrar (ej. <code>stb_id</code>, <code>event_name</code>) — la lección real de <code>KPIS.EventMKP</code>: sin esto, el costo de consultar se dispara.</li>
+            <li>Crear la tabla <b>particionada por fecha</b> y <b>clusterizada</b> por los campos que más se van a filtrar (ej. <code>stb_id</code>, <code>event_name</code>) — sin esto, el costo de consultar se dispara.</li>
             <li>Crear una <b>service account</b> con el rol mínimo (<code>roles/bigquery.dataEditor</code>), solo para el pipeline — nunca para los STB.</li>
             <li>Habilitar la <b>Storage Write API</b> en el proyecto.</li>
             <li>Levantar un endpoint receptor (Cloud Run o API Gateway) que publique a <b>Pub/Sub</b>.</li>

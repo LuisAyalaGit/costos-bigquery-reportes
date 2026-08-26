@@ -409,9 +409,9 @@
       "medio" ancla en el tamaño promedio real de fila de <code>KPIS.EventMKP</code>
       (1,162,372,610,843 bytes ÷ 3,020,679,692 filas ≈ 385 B). BigQuery: almacenamiento $0.02/GB activo (90 días) +
       $0.01/GB largo plazo, ingesta vía Storage Write API $0.025/GiB con 2 TiB/mes gratis, queries a $6.25/TiB
-      on-demand (mismo supuesto validado contra factura real en el resto de esta carpeta); el rango "bien/mal
-      diseñada" escala el caso real de KPIS.EventMKP (documentado en <code>21_impacto_eventmkp_jul_ago.sql</code>)
-      por la razón entre el nuevo volumen diario y el usado en el estimado anterior (×6.56). DynamoDB On-Demand,
+      on-demand (mismo supuesto validado contra factura real en el resto de esta carpeta); este estimado escala
+      un caso real observado por la razón entre el nuevo volumen diario y el usado en el estimado anterior
+      (×6.56). DynamoDB On-Demand,
       tabla Standard, región US East: $0.625/millón WRU, $0.25/GB-mes de almacenamiento (evento ≤1KB = 1 WRU).
       <b>ClickHouse® es software open source (Apache 2.0) que se autoaloja, distinto de ClickHouse Cloud (el
       servicio administrado de pago)</b> — aquí se usa el costo de infraestructura de un clúster autoalojado de
