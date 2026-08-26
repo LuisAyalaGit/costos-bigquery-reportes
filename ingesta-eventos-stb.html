@@ -299,7 +299,9 @@
       Continuando la comparación de arriba, ahora con 5 opciones (se agregó <b>ClickHouse Cloud</b>, la versión
       administrada): por cada proveedor, dos barras una junto a la otra — el costo a volumen móvil (73.72 ev/s) y
       el costo al volumen estimado de STB (705.2 ev/s). Cada color es un componente de costo. Se quitó
-      "Mantenimiento" del desglose — ese trabajo lo cubre el equipo, no es un costo de proveedor.
+      "Mantenimiento" del desglose — ese trabajo lo cubre el equipo, no es un costo de proveedor. Las Consultas de
+      BigQuery se dejaron igual en las dos barras: es el mismo trabajo de dashboards/reportes, no crece solo
+      porque haya más eventos guardados — lo que sí sube con el volumen es el almacenamiento.
     </div>
     <div class="legend">
       <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
@@ -308,7 +310,7 @@
       <span><i style="background:var(--cat-queries)"></i>Consultas</span>
     </div>
     <div class="stackchart-wrap">
-      <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
+      <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 427.38 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
         <g id="stackGrid"></g>
         <g id="stackBars"></g>
       </svg>
@@ -322,11 +324,12 @@
     </div>
     <div class="callout warn">
       <div class="ico">🔀</div>
-      <p><b>El cruce se ve directo en el gráfico:</b> a volumen móvil, BigQuery y DynamoDB ganan por ser 100%
-      pago-por-uso (~$330–350/mes); ClickHouse ya paga su infraestructura fija (~$882/mes) aunque el tráfico sea
-      chico. Al volumen de STB, <b>ClickHouse casi no sube</b> ($895/mes — su infraestructura ya estaba pagada),
-      mientras BigQuery y DynamoDB suben ~9-10× (a ~$3,150–3,340/mes) y <b>Aurora se dispara</b> a ~$10,732/mes,
-      el que peor escala de los 5 porque su cómputo crece directo con el volumen.</p>
+      <p><b>El cruce se ve directo en el gráfico:</b> a volumen móvil, BigQuery y DynamoDB ganan por ser
+      prácticamente pago-por-uso (~$330–350/mes); ClickHouse ya paga su infraestructura fija (~$882/mes) aunque el
+      tráfico sea chico. Al volumen de STB, <b>ClickHouse casi no sube</b> ($895/mes — su infraestructura ya estaba
+      pagada) y <b>BigQuery tampoco sube mucho</b> (~$427/mes — solo el almacenamiento crece, las consultas se
+      mantienen); DynamoDB sube ~9.6× (a ~$3,340/mes) y <b>Aurora se dispara</b> a ~$10,732/mes, el que peor escala
+      de los 5 porque su cómputo crece directo con el volumen.</p>
     </div>
   </div>
 
@@ -335,7 +338,7 @@
       <h2>Desglose detallado por proveedor</h2>
       <div class="meta">licencia · dónde vive el almacenamiento · cómputo · tránsito</div>
     </div>
-    <div class="card-note">Costos mes 12, escenario medio (392 B/evento). Columna "Móvil" a la tasa real medida (73.72 ev/s); columna "STB" al volumen estimado (705.2 ev/s). El costo por consulta usa el mismo precio de lista en ambas columnas — sube en STB porque hay más información que revisar, no porque cueste más por unidad.</div>
+    <div class="card-note">Costos mes 12, escenario medio (392 B/evento). Columna "Móvil" a la tasa real medida (73.72 ev/s); columna "STB" al volumen estimado (705.2 ev/s). El costo de Consultas de BigQuery se dejó igual en las dos columnas — es el mismo trabajo de dashboards/reportes, no depende de cuántos eventos haya guardados; lo que sí sube con el volumen es el almacenamiento.</div>
 
     <!-- BigQuery -->
     <div class="provider-block">
@@ -354,8 +357,8 @@
             <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td><td class="num">$0</td></tr>
             <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, mes 12)</td><td class="num">$11.40</td><td class="num">$109.06</td></tr>
             <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
-            <tr><td class="name">Consultas (costo por información revisada, con datos reales de referencia)</td><td class="num">$318.32</td><td class="num">$3,044.90</td></tr>
-            <tr class="total"><td class="name">Total</td><td class="num">$329.72</td><td class="num">$3,153.96</td></tr>
+            <tr><td class="name">Consultas (costo por información revisada, con datos reales de referencia)</td><td class="num">$318.32</td><td class="num">$318.32</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$329.72</td><td class="num">$427.38</td></tr>
           </tbody>
         </table>
       </div>
@@ -507,9 +510,10 @@
       semana del 10 ago 2026, 100% Android + iOS confirmado por columna <code>platform</code>) — sin multiplicador,
       es tráfico ya medido. Tamaño de evento "medio" = 392 B, del JSON de ejemplo del PDF de Dev (evento
       <code>element_click</code>, compactado), cruzado contra el promedio real de fila de <code>KPIS.EventMKP</code>
-      (385 B). BigQuery: $6.25/TiB on-demand para queries (costo escalado proporcional al volumen de este pipeline
-      contra un caso real de referencia, ~$10.47/día para ~2.5 GB/día revisados), $0.02/GB activo + $0.01/GB largo
-      plazo almacenamiento. DynamoDB On-Demand: $0.625/millón WRU, $0.25/GB-mes almacenamiento. ClickHouse
+      (385 B). BigQuery: $6.25/TiB on-demand para queries (costo calculado sobre el volumen móvil real, ~$10.47/día
+      para ~2.5 GB/día revisados; se deja igual en el escenario STB porque el trabajo de dashboards/reportes no
+      cambia solo por tener más eventos guardados), $0.02/GB activo + $0.01/GB largo plazo almacenamiento.
+      DynamoDB On-Demand: $0.625/millón WRU, $0.25/GB-mes almacenamiento. ClickHouse
       autoalojado: $880/mes de infraestructura (3 nodos, piso práctico de alta disponibilidad, referencia AWS),
       tránsito inter-nodo estimado como 2× el volumen ingerido a $0.01/GB cross-AZ (supuesto, ajustable). No se
       incluye un costo de mantenimiento/operación humana — es trabajo real del equipo, pero no es un cargo de
@@ -553,7 +557,7 @@
   var providers = [
     {name:'BigQuery', color:'var(--prov-bq)',
       movil:{compute:0, storage:11.40, transit:0, queries:318.32},
-      stb:{compute:0, storage:109.06, transit:0, queries:3044.90}},
+      stb:{compute:0, storage:109.06, transit:0, queries:318.32}},
     {name:'DynamoDB', color:'var(--prov-dynamo)',
       movil:{compute:121.18, storage:228.02, transit:0, queries:0},
       stb:{compute:1159.21, storage:2181.16, transit:0, queries:0}},

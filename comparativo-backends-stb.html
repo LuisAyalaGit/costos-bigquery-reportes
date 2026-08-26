@@ -154,10 +154,12 @@
     </div>
     <div class="card-note">
       Se repite aquí el mismo cálculo del reporte anterior porque es la base de todo lo demás, más
-      <b>ClickHouse Cloud</b> (nuevo en este reporte): BigQuery y DynamoDB son ~100% pago-por-uso, así que
-      escalan con el volumen; ClickHouse autoalojado ya paga su infraestructura fija, así que casi no sube;
-      ClickHouse Cloud tiene un piso comprometido (tier Scale) pero más bajo que el autoalojado a este volumen;
-      Aurora es el que peor escala porque su cómputo mínimo (8 ACU) crece directo con el tráfico.
+      <b>ClickHouse Cloud</b> (nuevo en este reporte): DynamoDB es ~100% pago-por-uso, así que escala con el
+      volumen; BigQuery casi no sube porque solo su almacenamiento crece con el volumen — las Consultas se dejan
+      igual, es el mismo trabajo de dashboards/reportes sin importar cuántos eventos haya guardados; ClickHouse
+      autoalojado ya paga su infraestructura fija, así que casi no sube; ClickHouse Cloud tiene un piso
+      comprometido (tier Scale) pero más bajo que el autoalojado a este volumen; Aurora es el que peor escala
+      porque su cómputo mínimo (8 ACU) crece directo con el tráfico.
     </div>
     <div class="legend">
       <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
@@ -166,7 +168,7 @@
       <span><i style="background:var(--cat-queries)"></i>Consultas</span>
     </div>
     <div class="stackchart-wrap">
-      <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
+      <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 427.38 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
         <g id="stackGrid"></g>
         <g id="stackBars"></g>
       </svg>
@@ -488,7 +490,7 @@
   var providers = [
     {name:'BigQuery', color:'var(--prov-bq)',
       movil:{compute:0, storage:11.40, transit:0, queries:318.32},
-      stb:{compute:0, storage:109.06, transit:0, queries:3044.90}},
+      stb:{compute:0, storage:109.06, transit:0, queries:318.32}},
     {name:'DynamoDB', color:'var(--prov-dynamo)',
       movil:{compute:121.18, storage:228.02, transit:0, queries:0},
       stb:{compute:1159.21, storage:2181.16, transit:0, queries:0}},
