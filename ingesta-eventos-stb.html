@@ -515,7 +515,7 @@
       <div class="meta">límite de tamaño por evento · evento real hoy: 392 B</div>
     </div>
     <div class="card-note">
-      Antes de llegar a cualquier base, todo evento pasa primero por Kafka — su límite de mensaje aplica a los 4
+      Antes de llegar a cualquier base, todo evento pasa primero por Kafka — su límite de mensaje aplica a los 5
       por igual, sin importar a cuál se dirija después.
     </div>
     <div class="tblwrap">
@@ -523,7 +523,7 @@
         <thead><tr><th>Proveedor</th><th class="num">Límite real</th><th>¿Acepta payloads grandes?</th><th>Qué pasa si se excede</th></tr></thead>
         <tbody>
           <tr>
-            <td class="name"><span class="swatch" style="background:var(--muted)"></span>Kafka (compartido, antes de los 4)</td>
+            <td class="name"><span class="swatch" style="background:var(--muted)"></span>Kafka (compartido, antes de los 5)</td>
             <td class="num">~1 MB</td>
             <td><span class="tag risk">Limitado</span></td>
             <td>El productor falla al publicar; hay que subir <code>message.max.bytes</code> en broker y productor a la vez</td>
@@ -531,7 +531,7 @@
           <tr>
             <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</td>
             <td class="num">10 MB</td>
-            <td><span class="tag ok">Sí — el más tolerante de los 4</span></td>
+            <td><span class="tag ok">Sí — el más tolerante de los 5</span></td>
             <td>Storage Write API rechaza la fila/request si excede el tamaño</td>
           </tr>
           <tr>
@@ -547,6 +547,12 @@
             <td>Hereda el límite de Kafka (arriba) — el motor mismo no impone un techo adicional de fila</td>
           </tr>
           <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</td>
+            <td class="num">sin límite propio*</td>
+            <td><span class="tag ok">Sí</span></td>
+            <td>Mismo motor, hereda el límite de Kafka igual que el autoalojado; *ClickPipes no publica un tope propio de tamaño de mensaje aparte del broker</td>
+          </tr>
+          <tr>
             <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</td>
             <td class="num">~8 KB fila (MySQL) / ~2 KB (PostgreSQL) antes de desbordar</td>
             <td><span class="tag">Con ayuda del motor</span></td>
@@ -558,7 +564,7 @@
     <div class="callout">
       <div class="ico">🛠️</div>
       <p><b>¿Y si BigQuery no pudiera recibir un evento por su tamaño — se arregla con una función?</b> BigQuery ya
-      es el más tolerante de los 4 (10 MB, muy por encima del resto), así que ese escenario solo aparecería si
+      es el más tolerante de los 5 (10 MB, muy por encima del resto), así que ese escenario solo aparecería si
       algún día se empezaran a mandar payloads pesados (ej. imágenes o metadata sin comprimir). Si pasara, la
       solución <b>no es una función dentro de BigQuery</b> — una función/consulta de BigQuery solo opera sobre
       datos que ya lograron entrar, no puede "interceptar" un evento antes de que la Storage Write API lo rechace
@@ -608,7 +614,7 @@
       Kafka <code>message.max.bytes</code> ≈1 MB — <a href="https://www.confluent.io/learn/kafka-message-size-limit/" target="_blank" rel="noopener">Confluent, "Apache Kafka Message Size Limit"</a>.
       BigQuery Storage Write API, 10 MB por request/fila — <a href="https://cloud.google.com/bigquery/quotas" target="_blank" rel="noopener">Google Cloud, "Quotas and limits"</a>.
       DynamoDB 400 KB por ítem — <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html" target="_blank" rel="noopener">AWS, "Constraints in Amazon DynamoDB"</a>.
-      ClickHouse no impone límite propio de fila vía el motor de tabla Kafka, hereda el del broker — <a href="https://clickhouse.com/docs/engines/table-engines/integrations/kafka" target="_blank" rel="noopener">ClickHouse Docs, "Kafka table engine"</a>.
+      ClickHouse (autoalojado y Cloud, mismo motor) no impone límite propio de fila vía el motor de tabla Kafka, hereda el del broker — <a href="https://clickhouse.com/docs/engines/table-engines/integrations/kafka" target="_blank" rel="noopener">ClickHouse Docs, "Kafka table engine"</a>.
       Aurora MySQL ~8 KB de fila antes de desbordar a TEXT/BLOB; Aurora PostgreSQL, mecanismo TOAST (~2 KB) — <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_Limits.html" target="_blank" rel="noopener">AWS, "Quotas and constraints for Amazon Aurora"</a> y <a href="https://wiki.postgresql.org/wiki/TOAST" target="_blank" rel="noopener">PostgreSQL Wiki, "TOAST"</a>.
     </p>
     <p>Este reporte reemplaza/afina la arquitectura de ingesta propuesta en el reporte "Arquitectura de Ingesta STB" anterior, ahora alineada al pipeline real que definió Dev (MQTT→Kafka ya decidido; Storage es lo abierto), y sin las proyecciones estimadas a mano de la versión previa de este mismo reporte.</p>
