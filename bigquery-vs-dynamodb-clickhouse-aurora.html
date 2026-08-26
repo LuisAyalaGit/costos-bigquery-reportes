@@ -7,7 +7,7 @@
     --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
     --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
     --grid:#E3E8ED; --baseline:#C7D0D9;
-    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7;
+    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7; --prov-chc:#008300;
     --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
     --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
   }
@@ -17,7 +17,7 @@
       --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
       --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
       --grid:#212B36; --baseline:#2C3948;
-      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
       --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
     }
@@ -27,7 +27,7 @@
     --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
     --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
     --grid:#212B36; --baseline:#2C3948;
-    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
     --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
     --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
   }
@@ -126,19 +126,18 @@
     <h1>Eventos de Set-Top Box: BigQuery vs DynamoDB vs ClickHouse vs Aurora</h1>
     <div class="subtitle">
       Proyección de volumen y costo si se agregan eventos de STB al pipeline, con el volumen recalculado a
-      <b>75 millones de eventos diarios</b>. Se comparan BigQuery, DynamoDB, <b>ClickHouse autoalojado</b>
-      (ClickHouse® open source y ClickHouse Cloud son productos distintos — el primero es software libre que tú
-      hospedas, el segundo es el servicio administrado de pago; aquí se omite Cloud y se usa el costo de
-      infraestructura del autoalojado) y <b>Amazon Aurora</b> (Serverless v2). Todos los precios son de lista
-      (on-demand), sin descuentos por compromiso — ver metodología al final.
+      <b>75 millones de eventos diarios</b>. Se comparan BigQuery, DynamoDB, <b>ClickHouse</b> (autoalojado y
+      Cloud — son productos distintos: el primero es software libre que tú hospedas, el segundo es el servicio
+      administrado de pago; se cotizan los dos) y <b>Amazon Aurora</b> (Serverless v2). Todos los precios son de
+      lista (on-demand), sin descuentos por compromiso — ver metodología al final.
     </div>
   </div>
 
   <div class="callout" style="margin-bottom:20px;">
     <div class="ico">🔁</div>
-    <p><b>Actualización:</b> el volumen base cambió de ~11.4M a <b>75M eventos/día</b> (6.56× más), ClickHouse
-    ahora usa el costo de <b>autoalojarlo</b> en vez de ClickHouse Cloud, y se agregó <b>Amazon Aurora</b> como
-    cuarta opción. Todas las cifras de abajo ya reflejan estos cambios.</p>
+    <p><b>Actualización:</b> el volumen base cambió de ~11.4M a <b>75M eventos/día</b> (6.56× más), se agregó
+    <b>ClickHouse Cloud</b> junto al autoalojado, y se agregó <b>Amazon Aurora</b> como quinta opción. Todas las
+    cifras de abajo ya reflejan estos cambios.</p>
   </div>
 
   <div class="stats">
@@ -223,6 +222,7 @@
       es un caso aparte, ver la tabla de detalle abajo.
     </div>
     <div class="legend">
+      <span><i style="background:var(--prov-chc)"></i>ClickHouse Cloud</span>
       <span><i style="background:var(--prov-ch)"></i>ClickHouse (autoalojado)</span>
       <span><i style="background:var(--prov-bq)"></i>BigQuery</span>
       <span><i style="background:var(--prov-aurora)"></i>Aurora</span>
@@ -307,6 +307,29 @@
       </div>
     </div>
 
+    <!-- ClickHouse Cloud -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</h3>
+      <p class="sub">Mismo motor OLAP, versión administrada — la diferencia con el autoalojado es quién opera el servidor, no cómo funciona</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 aparte — se paga por uso (cómputo + almacenamiento), servicio administrado por ClickHouse Inc.</div></div>
+        <div class="info-item"><div class="k">Dónde vive el almacenamiento</div><div class="v">Object storage administrado, con caché distribuida compartida entre los nodos de cómputo</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">Tier Scale (alta disponibilidad real) — $0.2985/unidad-hora, piso comprometido ~$499/mes</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Mes 1</th><th class="num">Mes 6</th><th class="num">Mes 12</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Cómputo (tier Scale, piso ~$499/mes)</td><td class="num">$499.00</td><td class="num">$499.00</td><td class="num">$499.00</td></tr>
+            <tr><td class="name">Almacenamiento ($0.0253/GB-mes)</td><td class="num">$23.10</td><td class="num">$138.62</td><td class="num">$277.25</td></tr>
+            <tr><td class="name">Backup</td><td class="num" colspan="3" style="text-align:left;">incluido en el servicio (snapshots automáticos)</td></tr>
+            <tr><td class="name">Operación</td><td class="num" colspan="3" style="text-align:left;">$0 — administrado, no requiere equipo propio de operación</td></tr>
+            <tr class="total"><td class="name">Total aproximado</td><td class="num">$522.10</td><td class="num">$637.62</td><td class="num">$776.25</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Aurora -->
     <div class="provider-block">
       <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</h3>
@@ -340,8 +363,8 @@
         <h3><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</h3>
         <ul>
           <li>Ya es la herramienta que usan hoy — sin curva de aprendizaje ni proveedor nuevo</li>
-          <li>Exige particionar/clusterizar bien desde el día 1 (lección de EventMKP)</li>
-          <li>Excelente para analítica ad-hoc y cruces con las tablas que ya existen (KPIS.*)</li>
+          <li>Exige particionar/clusterizar bien la tabla desde el día 1 para que el costo no se dispare</li>
+          <li>Excelente para analítica ad-hoc y cruces con las tablas que ya existen</li>
         </ul>
       </div>
       <div class="qual-card">
@@ -358,7 +381,14 @@
           <li>Pensado justo para este caso: ingesta masiva + analítica rápida en la misma tabla</li>
           <li>Software libre (Apache 2.0) — el costo es solo la infraestructura donde corre, sin cuota de proveedor</li>
           <li>A cambio, exige alguien del equipo que lo opere (parcheo, escalado, respaldo, alta disponibilidad) — costo real pero no está en dólares en esta tabla</li>
-          <li>ClickHouse Cloud (la versión administrada) existe como alternativa si prefieren no operarlo, a cambio de una cuota mensual más alta</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</h3>
+        <ul>
+          <li>Mismo motor OLAP, versión administrada — sin operarlo tú, y a este volumen sale más barato que el autoalojado (~$776/mes vs. ~$870–890/mes)</li>
+          <li>Corre en AWS, GCP o Azure — no ata a un solo proveedor de nube</li>
+          <li>El tier Basic no tiene alta disponibilidad real; para eso hace falta Scale, que es lo que se cotizó aquí</li>
         </ul>
       </div>
       <div class="qual-card">
@@ -399,7 +429,7 @@
       Fuentes: <a href="https://cloud.google.com/bigquery/pricing" target="_blank" rel="noopener">Google BigQuery pricing</a> ·
       <a href="https://aws.amazon.com/dynamodb/pricing/" target="_blank" rel="noopener">AWS DynamoDB pricing</a> ·
       <a href="https://www.tinybird.co/blog/self-hosted-clickhouse-cost" target="_blank" rel="noopener">Costo de autoalojar ClickHouse (Tinybird)</a> ·
-      <a href="https://clickhouse.com/pricing" target="_blank" rel="noopener">ClickHouse Cloud pricing (referencia, no usado aquí)</a> ·
+      <a href="https://clickhouse.com/pricing" target="_blank" rel="noopener">ClickHouse Cloud pricing</a> (tier Scale, $0.2985/unidad-hora, $25.30/TB-mes) ·
       <a href="https://aws.amazon.com/rds/aurora/pricing/" target="_blank" rel="noopener">Amazon Aurora pricing</a>.
     </p>
     <div class="chips">
@@ -418,6 +448,7 @@
   var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
 
   var bars = [
+    {name:'ClickHouse Cloud', sub:'tier Scale (HA), administrado', value:776.25, color:'var(--prov-chc)'},
     {name:'ClickHouse — autoalojado', sub:'clúster HA 3 nodos, infra todo incluido', value:880, color:'var(--prov-ch)'},
     {name:'BigQuery — bien diseñada', sub:'almacenamiento + queries optimizadas (punto medio)', value:2596.98, color:'var(--prov-bq)'},
     {name:'Aurora Serverless v2', sub:'cómputo I/O-Optimized + almacenamiento', value:3376.68, color:'var(--prov-aurora)'},

@@ -6,7 +6,7 @@
     --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
     --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
     --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
-    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7;
+    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7; --prov-chc:#008300;
     --cat-compute:#2a78d6; --cat-storage:#1baf7a; --cat-transit:#e87ba4; --cat-queries:#eda100; --cat-maint:#4a3aa7;
     --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
     --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
@@ -16,7 +16,7 @@
       --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
       --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
       --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
-      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
       --cat-compute:#5b9eec; --cat-storage:#37c290; --cat-transit:#d55181; --cat-queries:#c98500; --cat-maint:#9085e9;
       --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
@@ -26,7 +26,7 @@
     --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
     --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
     --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
-    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
     --cat-compute:#5b9eec; --cat-storage:#37c290; --cat-transit:#d55181; --cat-queries:#c98500; --cat-maint:#9085e9;
     --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
     --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
@@ -157,7 +157,7 @@
       Dato clave que cambia el enfoque: el transporte de eventos <b>ya está decidido</b> — STB → MQTT → Kafka →
       Worker de enriquecimiento. Lo que su propio diagrama marca como <b>"Tecnología TBD"</b> es solo el paso de
       <b>Persistencia/Storage</b>, con "Oracle, Aurora u otra tecnología similar" como ejemplos que ellos mismos
-      mencionan. Ahí es exactamente donde compiten las 4 opciones de este reporte.
+      mencionan. Ahí es exactamente donde compiten las 5 opciones de este reporte.
     </div>
     <figure>
       <svg viewBox="0 0 980 260" role="img" aria-label="El pipeline propuesto por Dev: el STB publica eventos por MQTT hacia un broker, que los pasa por un bridge a un tópico Kafka crudo; un worker de enriquecimiento los consume y publica a un tópico Kafka enriquecido; desde ahí, sink connectors reparten los datos hacia dos destinos en paralelo: la capa de Persistencia/Storage, marcada como tecnología por definir entre Oracle, Aurora u otra similar, y el Data Lake para replicación analítica.">
@@ -208,7 +208,7 @@
         <!-- Storage TBD (abierto) -->
         <rect class="dbox open" x="725" y="45" width="235" height="50" rx="8"></rect>
         <text class="dtext" x="842" y="65" text-anchor="middle" font-size="11.5" font-weight="700" style="fill:var(--accent)">Persistencia / Storage</text>
-        <text class="dsub" x="842" y="80" text-anchor="middle" font-size="8.5">TBD — BigQuery / DynamoDB / ClickHouse / Aurora</text>
+        <text class="dsub" x="842" y="80" text-anchor="middle" font-size="8.5">TBD — BigQuery / DynamoDB / ClickHouse / CH Cloud / Aurora</text>
 
         <!-- Data Lake -->
         <rect class="dbox done" x="725" y="155" width="235" height="50" rx="8"></rect>
@@ -221,7 +221,7 @@
         <rect x="180" y="225" width="14" height="14" rx="3" class="dbox open"></rect>
         <text class="dlabel" x="200" y="236" font-size="10">abierto — foco de este reporte</text>
       </svg>
-      <figcaption>El transporte (MQTT→Kafka→Worker) ya está decidido. Las 4 opciones compiten solo por el paso "Persistencia/Storage", conectadas vía Kafka Sink Connectors.</figcaption>
+      <figcaption>El transporte (MQTT→Kafka→Worker) ya está decidido. Las 5 opciones compiten solo por el paso "Persistencia/Storage", conectadas vía Kafka Sink Connectors.</figcaption>
     </figure>
     <div class="callout">
       <div class="ico">🔧</div>
@@ -230,7 +230,7 @@
       IoT Core solo para DynamoDB, etc.) — cada backend se conecta a <code>tv-events-enriched</code> con su propio
       <b>Kafka Sink Connector</b> (existen conectores oficiales/comunitarios para los 4). El "Data Lake" del
       diagrama es un destino aparte (probablemente object storage tipo S3/GCS con zonas raw/curated) y no compite
-      directamente con las 4 opciones de este reporte.</p>
+      directamente con las 5 opciones de este reporte.</p>
     </div>
   </div>
 
@@ -297,10 +297,10 @@
       <div class="meta">mes 12 · escenario medio (392 B) · sin mantenimiento</div>
     </div>
     <div class="card-note">
-      Continuando la comparación de arriba: por cada proveedor, dos barras una junto a la otra — el costo a
-      volumen móvil (73.72 ev/s) y el costo al volumen estimado de STB (705.2 ev/s). Cada color es un componente
-      de costo. Se quitó "Mantenimiento" del desglose — ese trabajo lo cubre el equipo, no es un costo de
-      proveedor.
+      Continuando la comparación de arriba, ahora con 5 opciones (se agregó <b>ClickHouse Cloud</b>, la versión
+      administrada): por cada proveedor, dos barras una junto a la otra — el costo a volumen móvil (73.72 ev/s) y
+      el costo al volumen estimado de STB (705.2 ev/s). Cada color es un componente de costo. Se quitó
+      "Mantenimiento" del desglose — ese trabajo lo cubre el equipo, no es un costo de proveedor.
     </div>
     <div class="legend">
       <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
@@ -309,7 +309,7 @@
       <span><i style="background:var(--cat-queries)"></i>Consultas / Queries</span>
     </div>
     <div class="stackchart-wrap">
-      <svg id="stackChart" viewBox="0 0 1000 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB, dominado por consultas; DynamoDB 349.20 dólares móvil y 3340.37 STB, entre escritura y almacenamiento; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB, prácticamente sin cambio porque su infraestructura ya está paga; Aurora 1116.26 dólares móvil y 10731.81 STB, el que más escala con el volumen.">
+      <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
         <g id="stackGrid"></g>
         <g id="stackBars"></g>
       </svg>
@@ -327,7 +327,7 @@
       pago-por-uso (~$330–350/mes); ClickHouse ya paga su infraestructura fija (~$882/mes) aunque el tráfico sea
       chico. Al volumen de STB, <b>ClickHouse casi no sube</b> ($895/mes — su infraestructura ya estaba pagada),
       mientras BigQuery y DynamoDB suben ~9-10× (a ~$3,150–3,340/mes) y <b>Aurora se dispara</b> a ~$10,732/mes,
-      el que peor escala de los 4 porque su cómputo crece directo con el volumen.</p>
+      el que peor escala de los 5 porque su cómputo crece directo con el volumen.</p>
     </div>
   </div>
 
@@ -409,6 +409,29 @@
       </div>
     </div>
 
+    <!-- ClickHouse Cloud -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</h3>
+      <p class="sub">Mismo motor y misma conexión Kafka nativa (ClickPipes) que el autoalojado — la diferencia es que ClickHouse Inc. opera el servidor</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">Licencia</div><div class="v">$0 aparte — se paga por uso (cómputo + almacenamiento), servicio administrado</div></div>
+        <div class="info-item"><div class="k">Almacenamiento</div><div class="v">Object storage administrado por ClickHouse Inc., con caché distribuida entre nodos de cómputo</div></div>
+        <div class="info-item"><div class="k">Cómputo</div><div class="v">Tier Scale (HA real) cotizado aquí — $0.2985/unidad-hora, piso comprometido ~$499/mes</div></div>
+        <div class="info-item"><div class="k">Tránsito</div><div class="v">$0 — la replicación interna va incluida en el servicio</div></div>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">Costo/mes</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Cómputo (tier Scale, piso ~$499/mes)</td><td class="num">$499.00</td></tr>
+            <tr><td class="name">Almacenamiento ($0.0253/GB-mes, mes 12)</td><td class="num">$23.08</td></tr>
+            <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
+            <tr class="total"><td class="name">Total</td><td class="num">$522.08</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Aurora -->
     <div class="provider-block">
       <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</h3>
@@ -449,15 +472,23 @@
         <ul>
           <li><b>Pro:</b> latencia de escritura muy baja, escala sola sin administración</li>
           <li><b>Contra:</b> sin capacidad analítica — necesitarías otro motor para reportes</li>
-          <li><b>Contra:</b> almacenamiento por GB es de los más caros de los 4</li>
+          <li><b>Contra:</b> almacenamiento por GB es de los más caros de los 5</li>
         </ul>
       </div>
       <div class="qual-card">
         <h3><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</h3>
         <ul>
           <li><b>Pro:</b> el motor OLAP pensado exactamente para este patrón; se integra directo con Kafka (tabla motor Kafka nativa), sin conector externo</li>
-          <li><b>Contra:</b> a este volumen real (bajo) es el más caro de los 4 — su infraestructura fija no baja aunque el tráfico sea chico</li>
+          <li><b>Contra:</b> a este volumen real (bajo) sale más caro que ClickHouse Cloud — su infraestructura fija no baja aunque el tráfico sea chico</li>
           <li><b>Contra:</b> es la única opción sin nada administrado — exige que el equipo tenga experiencia real de operación de bases de datos (parcheo, escalado, respaldo); no está en el desglose de $ de este reporte, pero es un trabajo real</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</h3>
+        <ul>
+          <li><b>Pro:</b> mismo motor y misma conexión Kafka nativa que el autoalojado, pero administrado — sin operarlo tú, y a este volumen sale más barato ($522–720/mes vs. $882–895/mes autoalojado)</li>
+          <li><b>Pro:</b> corre en AWS, GCP o Azure — no ata a un solo proveedor de nube</li>
+          <li><b>Contra:</b> el tier Basic no tiene alta disponibilidad real; para eso hace falta Scale, que es lo que se cotizó aquí</li>
         </ul>
       </div>
       <div class="qual-card">
@@ -530,6 +561,9 @@
     {name:'ClickHouse', color:'var(--prov-ch)',
       movil:{compute:880.00, storage:0, transit:1.52, queries:0},
       stb:{compute:880.00, storage:0, transit:14.54, queries:0}},
+    {name:'CH Cloud', color:'var(--prov-chc)',
+      movil:{compute:499.00, storage:23.08, transit:0, queries:0},
+      stb:{compute:499.00, storage:220.73, transit:0, queries:0}},
     {name:'Aurora', color:'var(--prov-aurora)',
       movil:{compute:911.04, storage:205.22, transit:0, queries:0},
       stb:{compute:8768.76, storage:1963.05, transit:0, queries:0}}
@@ -591,21 +625,21 @@
   // ================= GROUPED STACKED CHART: móvil vs STB, por proveedor =================
   (function(){
     var svg = document.getElementById('stackChart');
-    var padL=70, padR=20, top=30, bottom=390, w=1000-padL-padR;
+    var padL=70, padR=20, top=30, bottom=390, w=1180-padL-padR;
     var maxY = 11000;
     var gridTicks=[0,2750,5500,8250,11000];
     var n = providers.length;
     var slot = w/n;
-    var bw = 62, gap = 14;
+    var bw = 56, gap = 12;
     var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
 
     var gridHtml='';
     gridTicks.forEach(function(t){
       var gy=y(t);
-      gridHtml += '<line class="stack-grid" x1="'+padL+'" y1="'+gy+'" x2="'+(1000-padR)+'" y2="'+gy+'"></line>';
+      gridHtml += '<line class="stack-grid" x1="'+padL+'" y1="'+gy+'" x2="'+(1180-padR)+'" y2="'+gy+'"></line>';
       gridHtml += '<text class="stack-axis" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end">$'+t.toLocaleString('en-US')+'</text>';
     });
-    gridHtml += '<line class="stack-baseline" x1="'+padL+'" y1="'+bottom+'" x2="'+(1000-padR)+'" y2="'+bottom+'"></line>';
+    gridHtml += '<line class="stack-baseline" x1="'+padL+'" y1="'+bottom+'" x2="'+(1180-padR)+'" y2="'+bottom+'"></line>';
     document.getElementById('stackGrid').innerHTML = gridHtml;
 
     function drawBar(bx, cx, dataset, provName, volLabel, dashed){

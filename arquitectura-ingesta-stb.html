@@ -6,7 +6,7 @@
     --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
     --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
     --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
-    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7;
+    --prov-bq:#2a78d6; --prov-dynamo:#eb6834; --prov-ch:#1baf7a; --prov-aurora:#4a3aa7; --prov-chc:#008300;
     --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
     --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
   }
@@ -15,7 +15,7 @@
       --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
       --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
       --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
-      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+      --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
       --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
       --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
     }
@@ -24,7 +24,7 @@
     --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
     --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
     --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
-    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9;
+    --prov-bq:#5b9eec; --prov-dynamo:#e8804c; --prov-ch:#37c290; --prov-aurora:#9085e9; --prov-chc:#3fc23f;
     --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
     --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
   }
@@ -105,7 +105,7 @@
     <div class="eyebrow"><span class="dot"></span>guía de implementación · complementa el estimado de costos</div>
     <h1>Cómo configurar cada opción para recibir eventos de STB</h1>
     <div class="subtitle">
-      Qué hay que instalar/configurar en <b>BigQuery, DynamoDB, ClickHouse y Aurora</b> para poder recibir los
+      Qué hay que instalar/configurar en <b>BigQuery, DynamoDB, ClickHouse, ClickHouse Cloud y Aurora</b> para poder recibir los
       eventos del Set-Top Box, y qué le toca al STB en cada caso. Complementa el reporte de costos
       "BigQuery vs DynamoDB vs ClickHouse vs Aurora" — aquí el foco es <b>cómo se construye</b>, no cuánto cuesta.
     </div>
@@ -114,8 +114,8 @@
   <div class="callout">
     <div class="ico">🔑</div>
     <p>
-      <b>La idea más importante de todo este documento:</b> en ninguna de las 4 opciones el STB debe conectarse
-      directamente a la base de datos. Ni BigQuery, ni DynamoDB, ni ClickHouse, ni Aurora están pensados para que
+      <b>La idea más importante de todo este documento:</b> en ninguna de las 5 opciones el STB debe conectarse
+      directamente a la base de datos. Ni BigQuery, ni DynamoDB, ni ClickHouse (autoalojado o Cloud), ni Aurora están pensados para que
       millones de dispositivos les hablen directo — necesitan credenciales de nube (GCP/AWS) que jamás deberían
       vivir en el firmware de un STB. Todas pasan primero por un <b>gateway de ingesta</b> propio. Por eso el
       trabajo del lado del STB es <b>prácticamente el mismo sin importar cuál base se elija</b> — lo que cambia es
@@ -190,13 +190,13 @@
   </figure>
 
   <div class="card">
-    <div class="card-head"><h2>Qué hay que hacer en el STB</h2><div class="meta">aplica igual a las 4 opciones</div></div>
+    <div class="card-head"><h2>Qué hay que hacer en el STB</h2><div class="meta">aplica igual a las 5 opciones</div></div>
     <div class="card-note">Esto es lo que responde directamente a "qué se configura en el STB" — y es prácticamente idéntico sin importar la base final.</div>
     <ol class="steps">
       <li><b>Un cliente HTTP(S) o MQTT ligero</b> en el firmware que arma el evento (JSON pequeño) y lo manda a <b>un solo endpoint fijo</b> — el gateway de ingesta. El STB nunca necesita saber si el destino final es BigQuery, DynamoDB, ClickHouse o Aurora.</li>
       <li><b>Identidad de dispositivo:</b> cada STB necesita autenticarse. Lo más robusto es un certificado único grabado en fábrica/aprovisionamiento (mTLS); más simple (y más fácil de rotar) es un API key o token asociado al número de serie del equipo.</li>
       <li><b>Cola local + reintentos:</b> si el STB pierde conectividad, debe poder guardar eventos en un buffer local (memoria/flash) y reintentar el envío cuando vuelva la red, para no perder datos.</li>
-      <li><b>Envío por lotes (batching):</b> agrupar eventos cada 30–60 segundos (o cada N eventos) en vez de mandar uno por uno — reduce drásticamente el número de conexiones, y beneficia a los 4 backends por igual.</li>
+      <li><b>Envío por lotes (batching):</b> agrupar eventos cada 30–60 segundos (o cada N eventos) en vez de mandar uno por uno — reduce drásticamente el número de conexiones, y beneficia a los 5 backends por igual.</li>
       <li><b>Compresión</b> del lote (gzip) antes de enviarlo — a 75M eventos/día el tráfico de red agregado es real.</li>
     </ol>
   </div>
@@ -286,6 +286,32 @@
       </div>
     </div>
 
+    <!-- ClickHouse Cloud -->
+    <div class="provider-block">
+      <h3><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</h3>
+      <p class="sub">Mismo motor que arriba, pero sin instalar/operar nada — ClickHouse Inc. corre el servidor</p>
+      <div class="two-col">
+        <div>
+          <ol class="steps" style="margin-top:0;">
+            <li>Crear un servicio en la consola de ClickHouse Cloud, eligiendo nube (AWS/GCP/Azure) y región, y el tier <b>Scale</b> (necesario para alta disponibilidad real — Basic corre en una sola réplica).</li>
+            <li>Crear la tabla con motor <code>ReplicatedMergeTree</code>, particionada por fecha — la parte de replicación/coordinación (equivalente a Keeper) ya la maneja el servicio.</li>
+            <li>Configurar <b>ClickPipes</b> (el conector Kafka nativo administrado) apuntando al tópico enriquecido — no hace falta levantar Kafka Connect ni nada externo.</li>
+            <li>Definir usuarios/roles desde la consola; TLS y balanceo ya vienen incluidos en el servicio.</li>
+          </ol>
+        </div>
+        <div>
+          <div class="side-box">
+            <div class="k">Piezas adicionales</div>
+            <div class="v">Ninguna propia — ClickPipes y la coordinación del clúster ya vienen incluidos en el servicio</div>
+          </div>
+          <div class="side-box">
+            <div class="k">Complejidad</div>
+            <div class="v"><span class="badge media">Media</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Aurora -->
     <div class="provider-block">
       <h3><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</h3>
@@ -344,6 +370,13 @@
             <td><span class="badge alta">Alta</span></td>
           </tr>
           <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-chc)"></span> ClickHouse Cloud</td>
+            <td>ClickHouse Inc. (administrada)</td>
+            <td>ClickPipes (incluido)</td>
+            <td>API key/cert. en el gateway propio</td>
+            <td><span class="badge media">Media</span></td>
+          </tr>
+          <tr>
             <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span> Aurora</td>
             <td>AWS (administrada)</td>
             <td>RDS Proxy</td>
@@ -353,7 +386,7 @@
         </tbody>
       </table>
     </div>
-    <div class="card-note" style="margin-top:14px;">"Complejidad de puesta en marcha" es una comparación relativa entre las 4, no un número de semanas — depende del tamaño del equipo y de cuánto de esto ya exista. Antes de comprometerse con una opción, vale la pena un piloto chico (unos cientos de STB reales) para validar que el diseño aguanta antes de escalar a los 4M.</div>
+    <div class="card-note" style="margin-top:14px;">"Complejidad de puesta en marcha" es una comparación relativa entre las 5, no un número de semanas — depende del tamaño del equipo y de cuánto de esto ya exista. Antes de comprometerse con una opción, vale la pena un piloto chico (unos cientos de STB reales) para validar que el diseño aguanta antes de escalar al total de clientes.</div>
   </div>
 
   <footer>
@@ -362,7 +395,7 @@
       para cada plataforma (no son inventados para este caso), pero no reemplazan una prueba de carga real con el
       volumen y payload exactos que definan los devs de STB. Los nombres de componentes son los servicios nativos
       de cada nube (GCP para BigQuery, AWS para DynamoDB/Aurora); para ClickHouse autoalojado, la elección de nube
-      es libre. El endpoint/gateway de ingesta es responsabilidad propia en los 4 casos — ninguna de las 4
+      es libre. El endpoint/gateway de ingesta es responsabilidad propia en los 5 casos — ninguna de las 5
       plataformas lo provee por sí sola.
     </p>
     <div class="chips">

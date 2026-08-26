@@ -179,74 +179,6 @@
     </div>
   </div>
 
-  <div class="masthead" style="margin-top:8px;">
-    <div class="eyebrow"><span class="dot" style="background:var(--series-events)"></span>eventos</div>
-    <h1 class="section">Eventos que llegan por semana</h1>
-    <div class="subtitle">
-      Volumen de eventos ingeridos en <b>KPIS.EventMKP</b>, la tabla de eventos de marketing (la misma que tuvo
-      el cambio de eficiencia el 31 de julio). Sirve para confirmar que la baja de costo fue por eficiencia y
-      no porque haya llegado menos información.
-    </div>
-  </div>
-
-  <div class="stats">
-    <div class="tile">
-      <div class="label">Eventos acumulados · 1 jul al 19 ago</div>
-      <div class="value">341.3M</div>
-      <div class="sub">tipos de evento: 10-11 distintos por semana</div>
-    </div>
-    <div class="tile">
-      <div class="label">Semana con más eventos (completa)</div>
-      <div class="value">55.3M</div>
-      <div class="sub">semana del 13 jul · 2.04M usuarios distintos</div>
-    </div>
-    <div class="tile">
-      <div class="label">Promedio semanal (semanas completas)</div>
-      <div class="value">47.3M</div>
-      <div class="sub">~1.88M usuarios distintos/semana</div>
-    </div>
-    <div class="tile">
-      <div class="label">Volumen vs. costo</div>
-      <div class="value" style="font-size:20px;">estable</div>
-      <div class="sub">eventos casi sin cambio, pero el costo de queries cayó 98.9% desde el 31 jul</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>Total de eventos por semana</h2>
-      <div class="meta">KPIS.EventMKP</div>
-    </div>
-    <div class="card-note">Semana = lunes a domingo. La última barra (17 ago) está en curso, solo 3 días de datos.</div>
-    <div class="chart-wrap">
-      <svg id="eventsChart" viewBox="0 0 1040 340" width="100%" style="overflow:visible; margin-top:12px;">
-        <g id="eventsGrid"></g>
-        <g id="eventsBars"></g>
-      </svg>
-      <div class="tooltip" id="eventsTip"></div>
-    </div>
-    <div class="callout">
-      <div class="ico">💡</div>
-      <p>El volumen de eventos se mantuvo en el mismo rango (43–55M/semana) durante todo julio y agosto, mientras
-      que el costo de queries sobre esta misma tabla cayó de ~$6,500/semana a ~$70/semana desde el 31 de julio
-      (ver el reporte "Impacto EventMKP"). Confirma que la baja fue por eficiencia de la tabla, no por menos datos entrando.</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <h2>Detalle semanal de eventos</h2>
-      <div class="meta">KPIS.EventMKP</div>
-    </div>
-    <div class="tblwrap">
-      <table>
-        <thead>
-          <tr><th>Semana</th><th class="num">Total eventos</th><th class="num">Tipos de evento</th><th class="num">Usuarios distintos</th></tr>
-        </thead>
-        <tbody id="eventsBody"></tbody>
-      </table>
-    </div>
-  </div>
 
   <div class="masthead" style="margin-top:8px;">
     <div class="eyebrow"><span class="dot" style="background:var(--series-storage)"></span>almacenamiento</div>
@@ -348,12 +280,7 @@
       semanas (de 155 tablas totales hoy) para que la comparación sea pareja. Costo a $0.02/GB activo + $0.01/GB
       largo plazo. Ninguno de los dos costos incluye descuentos por compromiso ni es la factura oficial.
     </p>
-    <p>
-      <b style="color:var(--ink-2)">Metodología — eventos:</b> fuente <code>KPIS.EventMKP</code>, filtrado por su
-      columna de partición <code>semana</code> (ISO week) más un rango de <code>event_date</code> para acotar el año
-      — sin esto, la consulta escanearía la tabla completa (~1.16 TB). 1 fila = 1 evento.
-    </p>
-    <p>Reportes SQL equivalentes en esta carpeta: <code>15_costo_por_semana.sql</code> (queries), <code>23_eventos_por_semana_eventmkp.sql</code> (eventos), <code>22_almacenamiento_por_mes.sql</code> (almacenamiento, totales oficiales y consulta base para la muestra semanal).</p>
+    <p>Consultas SQL equivalentes disponibles en el repositorio del proyecto (costo por semana y almacenamiento).</p>
     <div class="chips">
       <span class="chip">totalplay-8726e</span>
       <span class="chip">1 jul – 19 ago 2026</span>
@@ -447,68 +374,6 @@
       });
       el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
     });
-  })();
-
-  // ================= EVENTS WEEKLY BAR CHART =================
-  (function(){
-    var svg = document.getElementById('eventsChart');
-    var padL=64, padR=16, top=20, bottom=280, w=1040-padL-padR;
-    var maxY = 60000000;
-    var n = events.length;
-    var slot = w/n, bw = slot*0.56;
-    var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
-    var fmtM = function(v){ return (v/1000000).toFixed(0)+'M'; };
-
-    var gridTicks=[0,15000000,30000000,45000000,60000000], gridHtml='';
-    gridTicks.forEach(function(t){
-      var gy=y(t);
-      gridHtml += '<line class="grid-line" x1="'+padL+'" y1="'+gy+'" x2="'+(1040-padR)+'" y2="'+gy+'"></line>';
-      gridHtml += '<text class="axis-label" x="'+(padL-10)+'" y="'+(gy+4)+'" text-anchor="end" font-family="IBM Plex Mono, monospace">'+fmtM(t)+'</text>';
-    });
-    gridHtml += '<line class="base-line" x1="'+padL+'" y1="'+bottom+'" x2="'+(1040-padR)+'" y2="'+bottom+'"></line>';
-    document.getElementById('eventsGrid').innerHTML = gridHtml;
-
-    var html='';
-    events.forEach(function(d,i){
-      var cx = padL + slot*i + slot/2;
-      var bx = cx - bw/2;
-      var by = y(d.total);
-      var bh = bottom - by;
-      var fill = css('--series-events');
-      var extra = d.partial ? 'stroke="'+fill+'" stroke-width="1.5" stroke-dasharray="4 4" fill-opacity="0.18"' : 'fill="'+fill+'"';
-      html += '<rect class="hit-events" data-i="'+i+'" x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+Math.max(bh,2)+'" rx="6" '+extra+'></rect>';
-      html += '<text class="axis-label" x="'+cx+'" y="'+(by-10)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-weight="600" fill="var(--ink-2)">'+fmtM(d.total)+'</text>';
-      html += '<text class="axis-label" x="'+cx+'" y="'+(bottom+22)+'" text-anchor="middle" font-family="IBM Plex Mono, monospace">'+d.label+(d.partial?' •':'')+'</text>';
-    });
-    document.getElementById('eventsBars').innerHTML = html;
-
-    var tip = document.getElementById('eventsTip');
-    svg.querySelectorAll('.hit-events').forEach(function(el){
-      el.addEventListener('mousemove', function(e){
-        var d = events[+el.getAttribute('data-i')];
-        tip.innerHTML = '<b>'+d.full+'</b><br>Eventos: <b>'+fmtNum(d.total)+'</b><br>Tipos: '+d.tipos+' · Usuarios: '+fmtNum(d.usuarios);
-        var rect = svg.getBoundingClientRect();
-        tip.style.left = (e.clientX - rect.left) + 'px';
-        tip.style.top = (e.clientY - rect.top) + 'px';
-        tip.style.opacity = 1;
-      });
-      el.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
-    });
-  })();
-
-  // ================= EVENTS TABLE =================
-  (function(){
-    var html='';
-    var tTotal=0;
-    events.forEach(function(d){
-      tTotal+=d.total;
-      html += '<tr><td class="name">'+d.full.replace(' (completa)','').replace(' (en curso, 3 días)',' <span class=\"tag\">en curso</span>').replace(' (solo 1–5 jul, parcial)',' <span class=\"tag\">parcial</span>')+'</td>'+
-        '<td class="num">'+fmtNum(d.total)+'</td>'+
-        '<td class="num">'+d.tipos+'</td>'+
-        '<td class="num">'+fmtNum(d.usuarios)+'</td></tr>';
-    });
-    html += '<tr class="total"><td class="name">Total (1 jul – 19 ago)</td><td class="num">'+fmtNum(tTotal)+'</td><td class="num">—</td><td class="num">—</td></tr>';
-    document.getElementById('eventsBody').innerHTML = html;
   })();
 
   // ================= STORAGE CHART (weekly, stable 71-table sample) =================
