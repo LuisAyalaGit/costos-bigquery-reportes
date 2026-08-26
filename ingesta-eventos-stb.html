@@ -127,8 +127,13 @@
   .qual-card h3{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:8px; }
   .qual-card ul{ margin:0; padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.7; }
 
+  .tag{ font:500 10.5px "IBM Plex Mono",monospace; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); padding:2px 6px; border-radius:100px; }
+  .tag.ok{ color:var(--good); border-color:var(--good); }
+  .tag.risk{ color:var(--critical); border-color:var(--critical); }
+
   footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
   footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:98ch; margin:0 0 8px; }
+  footer a{ color:var(--accent); }
   .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
   .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
 </style>
@@ -504,6 +509,73 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-head">
+      <h2>Quién aguanta eventos grandes, y qué hacer si algún día no cupieran</h2>
+      <div class="meta">límite de tamaño por evento · evento real hoy: 392 B</div>
+    </div>
+    <div class="card-note">
+      Antes de llegar a cualquier base, todo evento pasa primero por Kafka — su límite de mensaje aplica a los 4
+      por igual, sin importar a cuál se dirija después.
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Proveedor</th><th class="num">Límite real</th><th>¿Acepta payloads grandes?</th><th>Qué pasa si se excede</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--muted)"></span>Kafka (compartido, antes de los 4)</td>
+            <td class="num">~1 MB</td>
+            <td><span class="tag risk">Limitado</span></td>
+            <td>El productor falla al publicar; hay que subir <code>message.max.bytes</code> en broker y productor a la vez</td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</td>
+            <td class="num">10 MB</td>
+            <td><span class="tag ok">Sí — el más tolerante de los 4</span></td>
+            <td>Storage Write API rechaza la fila/request si excede el tamaño</td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</td>
+            <td class="num">400 KB</td>
+            <td><span class="tag risk">No — el más estrecho</span></td>
+            <td><code>ValidationException</code> — rechazo total del ítem, sin excepción</td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse</td>
+            <td class="num">sin límite propio</td>
+            <td><span class="tag ok">Sí</span></td>
+            <td>Hereda el límite de Kafka (arriba) — el motor mismo no impone un techo adicional de fila</td>
+          </tr>
+          <tr>
+            <td class="name"><span class="swatch" style="background:var(--prov-aurora)"></span>Aurora</td>
+            <td class="num">~8 KB fila (MySQL) / ~2 KB (PostgreSQL) antes de desbordar</td>
+            <td><span class="tag">Con ayuda del motor</span></td>
+            <td>No se pierde el dato: TEXT/BLOB (MySQL) o TOAST (PostgreSQL) lo mueven a almacenamiento aparte de forma transparente</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <div class="ico">🛠️</div>
+      <p><b>¿Y si BigQuery no pudiera recibir un evento por su tamaño — se arregla con una función?</b> BigQuery ya
+      es el más tolerante de los 4 (10 MB, muy por encima del resto), así que ese escenario solo aparecería si
+      algún día se empezaran a mandar payloads pesados (ej. imágenes o metadata sin comprimir). Si pasara, la
+      solución <b>no es una función dentro de BigQuery</b> — una función/consulta de BigQuery solo opera sobre
+      datos que ya lograron entrar, no puede "interceptar" un evento antes de que la Storage Write API lo rechace
+      por tamaño. El arreglo va <b>antes</b> de BigQuery, en el pipeline: una Cloud Function o el mismo Worker de
+      enriquecimiento parte el payload en piezas más chicas, o guarda el archivo pesado en Cloud Storage y solo
+      escribe en BigQuery una fila con la referencia (URL) al archivo — el patrón estándar para blobs grandes.</p>
+    </div>
+    <div class="callout warn">
+      <div class="ico">⚖️</div>
+      <p><b>¿Vale la pena construir esto ahora?</b> No. El evento real hoy pesa 392 B — unas 26,700 veces menor que
+      el límite de BigQuery. Agregar una capa de partición o de referencias a Cloud Storage sin necesidad solo
+      suma complejidad y un punto de falla extra, sin ningún beneficio hoy. Tendría sentido revisarlo únicamente
+      si el formato del evento cambiara de forma drástica — y en ese caso, la primera pregunta no sería "cómo lo
+      resuelvo en BigQuery" sino "por qué un evento de analítica necesita pesar tanto".</p>
+    </div>
+  </div>
+
   <footer>
     <p>
       <b style="color:var(--ink-2)">Metodología:</b> volumen = 73.72 eventos/seg reales (<code>KPIS.EventMKP</code>,
@@ -530,6 +602,14 @@
       etc., 47.41 ev/s) se dejó igual que en móvil, sin multiplicar. La única variable asumida es el número de
       listas visibles simultáneas en pantalla (3/5/8, dando 6×/9.57×/14.92× vs. móvil) — no está documentado en
       el PDF y debe confirmarse con el equipo de diseño de UI del STB.
+    </p>
+    <p>
+      <b style="color:var(--ink-2)">Fuentes de los límites de tamaño:</b>
+      Kafka <code>message.max.bytes</code> ≈1 MB — <a href="https://www.confluent.io/learn/kafka-message-size-limit/" target="_blank" rel="noopener">Confluent, "Apache Kafka Message Size Limit"</a>.
+      BigQuery Storage Write API, 10 MB por request/fila — <a href="https://cloud.google.com/bigquery/quotas" target="_blank" rel="noopener">Google Cloud, "Quotas and limits"</a>.
+      DynamoDB 400 KB por ítem — <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html" target="_blank" rel="noopener">AWS, "Constraints in Amazon DynamoDB"</a>.
+      ClickHouse no impone límite propio de fila vía el motor de tabla Kafka, hereda el del broker — <a href="https://clickhouse.com/docs/engines/table-engines/integrations/kafka" target="_blank" rel="noopener">ClickHouse Docs, "Kafka table engine"</a>.
+      Aurora MySQL ~8 KB de fila antes de desbordar a TEXT/BLOB; Aurora PostgreSQL, mecanismo TOAST (~2 KB) — <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_Limits.html" target="_blank" rel="noopener">AWS, "Quotas and constraints for Amazon Aurora"</a> y <a href="https://wiki.postgresql.org/wiki/TOAST" target="_blank" rel="noopener">PostgreSQL Wiki, "TOAST"</a>.
     </p>
     <p>Este reporte reemplaza/afina la arquitectura de ingesta propuesta en el reporte "Arquitectura de Ingesta STB" anterior, ahora alineada al pipeline real que definió Dev (MQTT→Kafka ya decidido; Storage es lo abierto), y sin las proyecciones estimadas a mano de la versión previa de este mismo reporte.</p>
     <div class="chips">
