@@ -338,7 +338,7 @@
       <h2>Desglose detallado por proveedor</h2>
       <div class="meta">licencia · dónde vive el almacenamiento · cómputo · tránsito</div>
     </div>
-    <div class="card-note">Costos mes 12, escenario medio (392 B/evento). Columna "Móvil" a la tasa real medida (73.72 ev/s); columna "STB" al volumen estimado (705.2 ev/s). El costo de Consultas de BigQuery se dejó igual en las dos columnas — es el mismo trabajo de dashboards/reportes, no depende de cuántos eventos haya guardados; lo que sí sube con el volumen es el almacenamiento.</div>
+    <div class="card-note">Costos mes 12, escenario medio (392 B/evento). Columna "Móvil" a la tasa real medida (73.72 ev/s, <b>912.1 GB</b> acumulados a mes 12 sin borrar nada); columna "STB" al volumen estimado (705.2 ev/s, <b>8,724.4 GB</b> acumulados a mes 12) — mismos totales de la tabla de volumen de arriba. El costo de Consultas de BigQuery se dejó igual en las dos columnas — es el mismo trabajo de dashboards/reportes, no depende de cuántos eventos haya guardados; lo que sí sube con el volumen es el almacenamiento, y cada proveedor lo cobra distinto: BigQuery mezcla $0.02/GB los primeros ~90 días y $0.01/GB después de eso (por eso su costo de almacenamiento sale más bajo); DynamoDB, ClickHouse Cloud y Aurora cobran una sola tarifa fija todo el tiempo ($0.25, $0.0253 y $0.225 por GB al mes) sobre el total acumulado.</div>
 
     <!-- BigQuery -->
     <div class="provider-block">
@@ -355,7 +355,7 @@
           <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
             <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td><td class="num">$0</td></tr>
-            <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, mes 12)</td><td class="num">$11.40</td><td class="num">$109.06</td></tr>
+            <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, sobre 912.1 GB móvil / 8,724.4 GB STB acumulados a mes 12)</td><td class="num">$11.40</td><td class="num">$109.06</td></tr>
             <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
             <tr><td class="name">Consultas (costo por información revisada, con datos reales de referencia)</td><td class="num">$318.32</td><td class="num">$318.32</td></tr>
             <tr class="total"><td class="name">Total</td><td class="num">$329.72</td><td class="num">$427.38</td></tr>
@@ -379,7 +379,7 @@
           <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
             <tr><td class="name">Escritura ($0.625/millón WRU)</td><td class="num">$121.18</td><td class="num">$1,159.21</td></tr>
-            <tr><td class="name">Almacenamiento Standard ($0.25/GB-mes, mes 12)</td><td class="num">$228.02</td><td class="num">$2,181.16</td></tr>
+            <tr><td class="name">Almacenamiento Standard ($0.25/GB-mes, sobre 912.1 GB móvil / 8,724.4 GB STB acumulados a mes 12)</td><td class="num">$228.02</td><td class="num">$2,181.16</td></tr>
             <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
             <tr><td class="name">Lectura / analítica</td><td class="num" colspan="2" style="text-align:left;">no disponible — requeriría exportar a otro motor</td></tr>
             <tr class="total"><td class="name">Total</td><td class="num">$349.20</td><td class="num">$3,340.37</td></tr>
@@ -426,7 +426,7 @@
           <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
             <tr><td class="name">Cómputo (tier Scale, piso ~$499/mes)</td><td class="num">$499.00</td><td class="num">$499.00</td></tr>
-            <tr><td class="name">Almacenamiento ($0.0253/GB-mes, mes 12)</td><td class="num">$23.08</td><td class="num">$220.73</td></tr>
+            <tr><td class="name">Almacenamiento ($0.0253/GB-mes, sobre 912.1 GB móvil / 8,724.4 GB STB acumulados a mes 12)</td><td class="num">$23.08</td><td class="num">$220.73</td></tr>
             <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
             <tr class="total"><td class="name">Total</td><td class="num">$522.08</td><td class="num">$719.73</td></tr>
           </tbody>
@@ -449,7 +449,7 @@
           <thead><tr><th>Componente</th><th class="num">Móvil</th><th class="num">STB</th></tr></thead>
           <tbody>
             <tr><td class="name">Cómputo (Serverless v2, 8 ACU mínimo × $0.156/hr)</td><td class="num">$911.04</td><td class="num">$8,768.76</td></tr>
-            <tr><td class="name">Almacenamiento I/O-Optimized ($0.225/GB-mes, mes 12)</td><td class="num">$205.22</td><td class="num">$1,963.05</td></tr>
+            <tr><td class="name">Almacenamiento I/O-Optimized ($0.225/GB-mes, sobre 912.1 GB móvil / 8,724.4 GB STB acumulados a mes 12)</td><td class="num">$205.22</td><td class="num">$1,963.05</td></tr>
             <tr><td class="name">Tránsito</td><td class="num">$0</td><td class="num">$0</td></tr>
             <tr class="total"><td class="name">Total</td><td class="num">$1,116.26</td><td class="num">$10,731.81</td></tr>
           </tbody>
