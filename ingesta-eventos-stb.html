@@ -139,12 +139,11 @@
     <div class="eyebrow"><span class="dot"></span>basado en "Estadísticas y Eventos Arquitectura" (propuesta de Dev) · estimado, no facturación real</div>
     <h1>Ingesta de eventos STB: volumen, costo y arquitectura</h1>
     <div class="subtitle">
-      Reporte consolidado leyendo el documento de arquitectura que propuso el equipo de Dev. Se quitaron las
-      proyecciones estimadas a mano (el ×100 y el dato de 75M eventos/día) por no ser datos firmes — en su lugar,
-      el volumen usado aquí es el <b>tráfico real ya medido</b> de las apps móviles (Android + iOS), y el costo
-      detallado (nodos/cómputo, almacenamiento, tránsito, consultas) de
-      <b>BigQuery, DynamoDB, ClickHouse y Aurora</b> como la pieza de "Persistencia / Storage" que su propio
-      diagrama marca como <b>tecnología por definir</b>.
+      Este reporte usa datos reales en vez de cálculos aproximados: el volumen que se usa aquí es el
+      <b>tráfico que ya se mide hoy</b> en las apps móviles (Android + iOS), no una proyección hecha a mano. Con
+      ese dato real se calcula el costo detallado (cómputo, almacenamiento, tránsito, consultas) de
+      <b>BigQuery, DynamoDB, ClickHouse y Aurora</b> — las 4 opciones que se están evaluando para guardar los
+      eventos que llegan del Set-Top Box.
     </div>
   </div>
 
@@ -306,7 +305,7 @@
       <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
       <span><i style="background:var(--cat-storage)"></i>Almacenamiento</span>
       <span><i style="background:var(--cat-transit)"></i>Tránsito</span>
-      <span><i style="background:var(--cat-queries)"></i>Consultas / Queries</span>
+      <span><i style="background:var(--cat-queries)"></i>Consultas</span>
     </div>
     <div class="stackchart-wrap">
       <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
@@ -317,7 +316,7 @@
     </div>
     <div class="tblwrap">
       <table>
-        <thead><tr><th>Proveedor</th><th>Volumen</th><th class="num">Cómputo/Nodos</th><th class="num">Almacenamiento</th><th class="num">Tránsito</th><th class="num">Queries</th><th class="num">Total/mes</th></tr></thead>
+        <thead><tr><th>Proveedor</th><th>Volumen</th><th class="num">Cómputo/Nodos</th><th class="num">Almacenamiento</th><th class="num">Tránsito</th><th class="num">Consultas</th><th class="num">Total/mes</th></tr></thead>
         <tbody id="stackTableBody"></tbody>
       </table>
     </div>
@@ -355,7 +354,7 @@
             <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td></tr>
             <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo, mes 12)</td><td class="num">$11.40</td></tr>
             <tr><td class="name">Tránsito</td><td class="num">$0</td></tr>
-            <tr><td class="name">Queries ($6.25/TiB, bien diseñada, escalado desde el ancla real de EventMKP)</td><td class="num">$318.32</td></tr>
+            <tr><td class="name">Consultas (costo por información revisada, con datos reales de referencia)</td><td class="num">$318.32</td></tr>
             <tr class="total"><td class="name">Total</td><td class="num">$329.72</td></tr>
           </tbody>
         </table>
@@ -464,7 +463,7 @@
         <ul>
           <li><b>Pro:</b> ya lo usan hoy, hay Kafka Sink Connector oficial, sin infraestructura que operar — de las opciones más baratas a este volumen</li>
           <li><b>Pro:</b> excelente para analítica ad-hoc y cruces con las tablas KPIS.* existentes</li>
-          <li><b>Contra:</b> el costo depende totalmente del diseño de la tabla — mal particionada, se dispara (lección de EventMKP)</li>
+          <li><b>Contra:</b> el costo depende totalmente de cómo esté organizada la información</li>
         </ul>
       </div>
       <div class="qual-card">
@@ -509,7 +508,7 @@
       es tráfico ya medido. Tamaño de evento "medio" = 392 B, del JSON de ejemplo del PDF de Dev (evento
       <code>element_click</code>, compactado), cruzado contra el promedio real de fila de <code>KPIS.EventMKP</code>
       (385 B). BigQuery: $6.25/TiB on-demand para queries (costo escalado proporcional al volumen de este pipeline
-      contra el ancla real de EventMKP bien diseñada, ~$10.47/día a ~2.5 GB/día), $0.02/GB activo + $0.01/GB largo
+      contra un caso real de referencia, ~$10.47/día para ~2.5 GB/día revisados), $0.02/GB activo + $0.01/GB largo
       plazo almacenamiento. DynamoDB On-Demand: $0.625/millón WRU, $0.25/GB-mes almacenamiento. ClickHouse
       autoalojado: $880/mes de infraestructura (3 nodos, piso práctico de alta disponibilidad, referencia AWS),
       tránsito inter-nodo estimado como 2× el volumen ingerido a $0.01/GB cross-AZ (supuesto, ajustable). No se
@@ -549,7 +548,7 @@
     {key:'compute', label:'Cómputo / Nodos', color:'var(--cat-compute)'},
     {key:'storage', label:'Almacenamiento', color:'var(--cat-storage)'},
     {key:'transit', label:'Tránsito', color:'var(--cat-transit)'},
-    {key:'queries', label:'Consultas / Queries', color:'var(--cat-queries)'}
+    {key:'queries', label:'Consultas', color:'var(--cat-queries)'}
   ];
   var providers = [
     {name:'BigQuery', color:'var(--prov-bq)',

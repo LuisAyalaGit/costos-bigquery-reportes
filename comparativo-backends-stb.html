@@ -116,12 +116,11 @@
     <div class="eyebrow"><span class="dot"></span>pipeline de ingesta de eventos STB</div>
     <h1>Comparativo completo: costo, tránsito y límites de tamaño</h1>
     <div class="subtitle">
-      Extiende el reporte <b>"Ingesta de eventos STB"</b> (20 ago): la base de <b>BigQuery es sólida</b> — tráfico
-      real medido en <code>KPIS.EventMKP</code> (73.72 eventos/seg, evento medio 392 B, dos fuentes cruzadas) — y el
-      costo de <b>DynamoDB, ClickHouse, ClickHouse Cloud y Aurora</b> es el mismo volumen aplicado a los precios
-      públicos de cada proveedor, no una medición. Se agrega <b>ClickHouse Cloud</b> (la versión administrada,
-      antes omitida) junto con tránsito, límites de tamaño, y — para Cloud específicamente — sus limitantes,
-      velocidad de lectura/escritura y compatibilidad con AWS.
+      Continúa el análisis anterior con más detalle: cómo entra y sale la información en cada opción, qué tan
+      pesado puede ser cada evento antes de que algo falle, y ahora también se compara <b>ClickHouse Cloud</b>
+      (la versión administrada de ClickHouse) junto con sus limitantes, qué tan rápido lee y escribe, y si
+      funciona con AWS. El dato base sigue siendo el tráfico real medido hoy; el costo de los otros proveedores es
+      ese mismo volumen aplicado a sus precios públicos, no una medición directa de ellos.
     </div>
   </div>
 
@@ -164,7 +163,7 @@
       <span><i style="background:var(--cat-compute)"></i>Cómputo / Nodos</span>
       <span><i style="background:var(--cat-storage)"></i>Almacenamiento</span>
       <span><i style="background:var(--cat-transit)"></i>Tránsito</span>
-      <span><i style="background:var(--cat-queries)"></i>Consultas / Queries</span>
+      <span><i style="background:var(--cat-queries)"></i>Consultas</span>
     </div>
     <div class="stackchart-wrap">
       <svg id="stackChart" viewBox="0 0 1180 470" role="img" aria-label="Costo mensual por proveedor, móvil vs STB estimado: BigQuery 329.72 dólares a volumen móvil y 3153.96 a volumen STB; DynamoDB 349.20 dólares móvil y 3340.37 STB; ClickHouse autoalojado 881.52 dólares móvil y 894.54 STB; ClickHouse Cloud 522.08 dólares móvil y 719.73 STB; Aurora 1116.26 dólares móvil y 10731.81 STB.">
@@ -175,7 +174,7 @@
     </div>
     <div class="tblwrap">
       <table>
-        <thead><tr><th>Proveedor</th><th>Volumen</th><th class="num">Cómputo/Nodos</th><th class="num">Almacenamiento</th><th class="num">Tránsito</th><th class="num">Queries</th><th class="num">Total/mes</th></tr></thead>
+        <thead><tr><th>Proveedor</th><th>Volumen</th><th class="num">Cómputo/Nodos</th><th class="num">Almacenamiento</th><th class="num">Tránsito</th><th class="num">Consultas</th><th class="num">Total/mes</th></tr></thead>
         <tbody id="stackTableBody"></tbody>
       </table>
     </div>
@@ -330,7 +329,7 @@
             <td class="name"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</td>
             <td>Slots on-demand compartidos, no garantizados; sin lookups de una sola fila rápidos; sin transacciones multi-fila tipo OLTP</td>
             <td>Storage Write API soporta streams de varios GB/seg agregados entre todos los clientes</td>
-            <td>Escaneos analíticos sub-segundo con tabla bien particionada; leer 1 sola fila tarda cientos de ms igual que leer millones — no es su punto fuerte</td>
+            <td>Escaneos analíticos sub-segundo con tabla bien organizada; revisar un solo dato tarda igual que revisar millones — no es lo suyo</td>
             <td><span class="tag risk">No</span> — motor propio de Google Cloud, no corre en AWS (una app en AWS sí puede llamarlo por internet)</td>
           </tr>
           <tr>
@@ -344,7 +343,7 @@
             <td class="name"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse (autoalojado)</td>
             <td>Sin alta disponibilidad ni respaldo automático — tú lo configuras; no pensado para tablas con updates frecuentes fila por fila</td>
             <td>Millones de filas/seg sostenidas, escala casi lineal al agregar nodos (~4M filas/seg en un solo nodo, en benchmarks públicos)</td>
-            <td>Agregaciones sobre miles de millones de filas en &lt;1 seg con tabla bien diseñada; leer 1 sola fila por ID es más lento que un key-value store (su índice es disperso, no exacto)</td>
+            <td>Puede resumir miles de millones de filas en menos de 1 segundo cuando la información está bien organizada; buscar un solo dato por su identificador es más lento que en una base pensada para eso</td>
             <td><span class="tag ok">Sí</span> — corre en cualquier VM: AWS, GCP, Azure o on-prem, tú eliges</td>
           </tr>
           <tr>
@@ -484,7 +483,7 @@
     {key:'compute', label:'Cómputo / Nodos', color:'var(--cat-compute)'},
     {key:'storage', label:'Almacenamiento', color:'var(--cat-storage)'},
     {key:'transit', label:'Tránsito', color:'var(--cat-transit)'},
-    {key:'queries', label:'Consultas / Queries', color:'var(--cat-queries)'}
+    {key:'queries', label:'Consultas', color:'var(--cat-queries)'}
   ];
   var providers = [
     {name:'BigQuery', color:'var(--prov-bq)',

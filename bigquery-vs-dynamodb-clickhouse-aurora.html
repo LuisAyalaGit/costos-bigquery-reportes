@@ -125,11 +125,11 @@
     <div class="eyebrow"><span class="dot"></span>estimado · no es facturación real</div>
     <h1>Eventos de Set-Top Box: BigQuery vs DynamoDB vs ClickHouse vs Aurora</h1>
     <div class="subtitle">
-      Proyección de volumen y costo si se agregan eventos de STB al pipeline, con el volumen recalculado a
-      <b>75 millones de eventos diarios</b>. Se comparan BigQuery, DynamoDB, <b>ClickHouse</b> (autoalojado y
-      Cloud — son productos distintos: el primero es software libre que tú hospedas, el segundo es el servicio
-      administrado de pago; se cotizan los dos) y <b>Amazon Aurora</b> (Serverless v2). Todos los precios son de
-      lista (on-demand), sin descuentos por compromiso — ver metodología al final.
+      Estimado de cuánto costaría manejar el flujo de eventos del Set-Top Box, calculado sobre
+      <b>75 millones de eventos al día</b>. Se comparan 5 opciones: BigQuery, DynamoDB, <b>ClickHouse</b> (en sus
+      dos versiones — una que tú instalas y administras, y otra ya administrada por el proveedor) y
+      <b>Amazon Aurora</b>. Todos los precios son públicos y de lista, sin ningún descuento especial — el detalle
+      de cómo se calculó está al final.
     </div>
   </div>
 
@@ -218,7 +218,7 @@
       <div class="meta">400 B/evento · 10,958 GB acumulados</div>
     </div>
     <div class="card-note">
-      Ordenado de menor a mayor entre las opciones "predecibles". BigQuery mal diseñada NO está en esta escala —
+      Ordenado de menor a mayor entre las opciones "predecibles". BigQuery con un costo alto por consultas no está en esta escala —
       es un caso aparte, ver la tabla de detalle abajo.
     </div>
     <div class="legend">
@@ -253,7 +253,7 @@
           <tbody>
             <tr><td class="name">Ingesta (Storage Write API, 2 TiB/mes gratis)</td><td class="num">$0</td><td class="num">$0</td><td class="num">$0</td></tr>
             <tr><td class="name">Almacenamiento ($0.02/GB activo + $0.01/GB largo plazo)</td><td class="num">$18.26</td><td class="num">$82.19</td><td class="num">$136.98</td></tr>
-            <tr><td class="name">Queries ($6.25/TiB escaneado, bien diseñada)</td><td class="num">~$1,970</td><td class="num">~$1,970</td><td class="num">~$1,970–2,950</td></tr>
+            <tr><td class="name">Consultas (costo por información revisada)</td><td class="num">~$1,970</td><td class="num">~$1,970</td><td class="num">~$1,970–2,950</td></tr>
             <tr><td class="name">Backup / recuperación</td><td class="num" colspan="3" style="text-align:left;">time travel de 7 días incluido sin costo extra</td></tr>
             <tr class="total"><td class="name">Total aproximado</td><td class="num">~$1,988</td><td class="num">~$2,052</td><td class="num">~$2,107–3,087</td></tr>
           </tbody>
@@ -450,7 +450,7 @@
   var bars = [
     {name:'ClickHouse Cloud', sub:'tier Scale (HA), administrado', value:776.25, color:'var(--prov-chc)'},
     {name:'ClickHouse — autoalojado', sub:'clúster HA 3 nodos, infra todo incluido', value:880, color:'var(--prov-ch)'},
-    {name:'BigQuery — bien diseñada', sub:'almacenamiento + queries optimizadas (punto medio)', value:2596.98, color:'var(--prov-bq)'},
+    {name:'BigQuery', sub:'almacenamiento + consultas optimizadas (punto medio)', value:2596.98, color:'var(--prov-bq)'},
     {name:'Aurora Serverless v2', sub:'cómputo I/O-Optimized + almacenamiento', value:3376.68, color:'var(--prov-aurora)'},
     {name:'DynamoDB On-Demand', sub:'escritura + almacenamiento (sin analítica)', value:4145.85, color:'var(--prov-dynamo)'}
   ];

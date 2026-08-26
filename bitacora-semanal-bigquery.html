@@ -126,18 +126,18 @@
 <div class="wrap">
 
   <div class="masthead">
-    <div class="eyebrow"><span class="dot"></span>totalplay-8726e &nbsp;·&nbsp; 1 jul – 19 ago 2026</div>
+    <div class="eyebrow"><span class="dot"></span>1 jul – 19 ago 2026</div>
     <h1>Bitácora semanal de costos BigQuery</h1>
     <div class="subtitle">
-      Dos vistas del mismo rango: <b>costo de queries por semana</b> (con historial diario completo) y
-      <b>costo de almacenamiento</b> (solo disponible como foto mensual — BigQuery no guarda su historial).
+      Dos vistas del mismo periodo: <b>cuánto se gastó en consultas cada semana</b> (con el detalle día a día) y
+      <b>cuánto cuesta guardar la información</b> (esto solo se puede ver una vez al mes, no día a día).
       Generado el 19 de agosto de 2026.
     </div>
   </div>
 
   <div class="stats">
     <div class="tile">
-      <div class="label">Costo de queries acumulado · 1 jul al 19 ago</div>
+      <div class="label">Costo de consultas acumulado · 1 jul al 19 ago</div>
       <div class="value">$34,434</div>
       <div class="sub">43,260 queries · 5,509.5 TiB escaneados</div>
     </div>
@@ -184,7 +184,7 @@
     <div class="eyebrow"><span class="dot" style="background:var(--series-storage)"></span>almacenamiento</div>
     <h1 class="section">Costo y volumen de almacenamiento</h1>
     <div class="subtitle">
-      A diferencia de las queries (que sí tienen historial diario en <code>JOBS_BY_PROJECT</code>),
+      A diferencia de las consultas (que sí tienen historial diario en <code>JOBS_BY_PROJECT</code>),
       el almacenamiento en BigQuery solo se puede leer como <b>estado actual</b>
       (<code>INFORMATION_SCHEMA.TABLE_STORAGE</code> no guarda historial). Por eso no existe un
       "costo de almacenamiento por semana" real — lo que hay son <b>fotos mensuales</b>, tomadas por el
@@ -211,7 +211,7 @@
     <div class="tile">
       <div class="label">Costo mensual de almacenamiento</div>
       <div class="value">~$120</div>
-      <div class="sub">vs. $34,434 de queries en el mismo rango — el almacenamiento es marginal</div>
+      <div class="sub">vs. $34,434 de consultas en el mismo rango — el almacenamiento es marginal</div>
     </div>
   </div>
 
@@ -239,7 +239,7 @@
       <div class="ico">💡</div>
       <p>Esta muestra creció <b>+10.3%</b> en 7 semanas (3.72 → 4.10 TiB), un ritmo constante de ~1.5%/semana — consistente
       con el crecimiento natural del histórico de eventos. El costo de almacenamiento en general sigue siendo marginal
-      frente al de queries: ~$120/mes vs. miles de dólares en queries en las semanas más caras.</p>
+      frente al de consultas: ~$120/mes vs. miles de dólares en queries en las semanas más caras.</p>
     </div>
   </div>
 
