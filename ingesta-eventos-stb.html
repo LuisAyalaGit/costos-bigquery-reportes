@@ -240,6 +240,47 @@
 
   <div class="card">
     <div class="card-head">
+      <h2>¿Quién manda el evento — hace falta Firebase, como en móvil?</h2>
+      <div class="meta">cómo llega cada evento hoy (móvil) vs. cómo llegaría desde STB</div>
+    </div>
+    <div class="card-note">
+      Buena pregunta: hoy en móvil sí existe un intermediario (Firebase) entre la app y BigQuery. Pero STB no lo
+      necesita — Dev ya definió un camino propio, independiente de Firebase, justo porque Firebase no aguantaría
+      ni el tamaño de un evento grande ni, en algunos escenarios, el volumen de STB.
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Componente</th><th>Móvil (hoy)</th><th>STB (propuesto por Dev)</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Quién genera el evento</td><td>La app, con el SDK de Firebase (Google Analytics for Firebase)</td><td>El STB mismo, con un cliente MQTT propio — sin SDK de terceros</td></tr>
+          <tr><td class="name">Camino hasta la base</td><td>Firebase Analytics → exportación a BigQuery (así llegan hoy <code>analytics_153774428.events_*</code> y <code>events_intraday_*</code>)</td><td>STB → MQTT → Broker → Bridge → Kafka → Worker → Kafka Sink Connector → BigQuery (Storage Write API), sin pasar por Firebase en ningún punto</td></tr>
+          <tr><td class="name">¿Acepta eventos grandes?</td><td><span class="tag risk">No</span> — un evento de Firebase Analytics tiene máximo 25 parámetros, 40 caracteres por nombre y 100 por valor de texto</td><td><span class="tag ok">Sí</span> — hasta el límite de Kafka (~1 MB) y BigQuery (10 MB), ver tabla más abajo</td></tr>
+          <tr><td class="name">¿Tiene tope de volumen?</td><td>La exportación <b>diaria</b> (batch) tiene un límite de 1,000,000 de eventos/día por propiedad; la exportación en <b>streaming</b> no tiene tope</td><td>No hay un tope propio de Firebase que aplique — lo que manda es el límite de Kafka y de cada base</td></tr>
+          <tr><td class="name">¿Quién construye/opera esta ruta?</td><td>Google — Firebase es un servicio administrado, cero código de transporte propio del equipo</td><td>El equipo — hay que construir el Bridge, el Worker de enriquecimiento y configurar el Sink Connector</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <div class="ico">🧭</div>
+      <p><b>¿Entonces sí existe "otro camino"?</b> Sí, y ya está definido: el pipeline que propuso Dev para STB
+      (MQTT → Kafka → Worker → Sink Connector) es exactamente ese otro camino — se construyó específicamente
+      porque STB no tiene un SDK de Firebase como las apps, y porque Firebase Analytics está pensado para eventos
+      compactos de analítica (clics, vistas, conversiones), no como un bus de eventos genérico para cualquier
+      volumen o tamaño de payload.</p>
+    </div>
+    <div class="callout warn">
+      <div class="ico">📊</div>
+      <p><b>El volumen ya deja fuera a Firebase, aunque el tamaño no fuera problema:</b> el escenario STB — medio
+      (705.2 eventos/seg) equivale a <b>~60.9M eventos/día</b> — 60 veces el tope de 1M/día de la exportación
+      diaria de Firebase. De hecho, el propio volumen real de móvil hoy (73.72 ev/s ≈ 6.37M eventos/día) ya rebasa
+      ese mismo tope de 1M — por eso las consultas de este reporte usan tanto <code>events_*</code> (diario) como
+      <code>events_intraday_*</code> (streaming, sin tope): sin streaming, ni siquiera el tráfico móvil actual
+      cabría completo en la exportación diaria.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
       <h2>Volumen de eventos: móvil real vs. STB estimado</h2>
       <div class="meta">una sola comparación, de punta a punta</div>
     </div>
@@ -616,6 +657,11 @@
       DynamoDB 400 KB por ítem — <a href="https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Constraints.html" target="_blank" rel="noopener">AWS, "Constraints in Amazon DynamoDB"</a>.
       ClickHouse (autoalojado y Cloud, mismo motor) no impone límite propio de fila vía el motor de tabla Kafka, hereda el del broker — <a href="https://clickhouse.com/docs/engines/table-engines/integrations/kafka" target="_blank" rel="noopener">ClickHouse Docs, "Kafka table engine"</a>.
       Aurora MySQL ~8 KB de fila antes de desbordar a TEXT/BLOB; Aurora PostgreSQL, mecanismo TOAST (~2 KB) — <a href="https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_Limits.html" target="_blank" rel="noopener">AWS, "Quotas and constraints for Amazon Aurora"</a> y <a href="https://wiki.postgresql.org/wiki/TOAST" target="_blank" rel="noopener">PostgreSQL Wiki, "TOAST"</a>.
+    </p>
+    <p>
+      <b style="color:var(--ink-2)">Fuentes de los límites de Firebase:</b>
+      máximo 25 parámetros por evento, 40 caracteres por nombre y 100 por valor de texto — <a href="https://support.google.com/analytics/answer/9267744" target="_blank" rel="noopener">Google Analytics Help, "Event collection limits"</a>.
+      La exportación diaria (batch) a BigQuery tiene un tope de 1,000,000 de eventos/día por propiedad; la exportación en streaming no tiene tope — <a href="https://support.google.com/analytics/answer/9358801" target="_blank" rel="noopener">Google Analytics Help, "BigQuery Export"</a>.
     </p>
     <p>Este reporte reemplaza/afina la arquitectura de ingesta propuesta en el reporte "Arquitectura de Ingesta STB" anterior, ahora alineada al pipeline real que definió Dev (MQTT→Kafka ya decidido; Storage es lo abierto), y sin las proyecciones estimadas a mano de la versión previa de este mismo reporte.</p>
     <div class="chips">
