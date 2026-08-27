@@ -294,7 +294,7 @@
         <div>
           <ol class="steps" style="margin-top:0;">
             <li>Crear un servicio en la consola de ClickHouse Cloud, eligiendo nube (AWS/GCP/Azure) y región, y el tier <b>Scale</b> (necesario para alta disponibilidad real — Basic corre en una sola réplica).</li>
-            <li>Crear la tabla con motor <code>ReplicatedMergeTree</code>, particionada por fecha — la parte de replicación/coordinación (equivalente a Keeper) ya la maneja el servicio.</li>
+            <li>Crear la tabla con motor <code>MergeTree</code> normal, particionada por fecha — el servicio la reescribe internamente a <code>SharedMergeTree</code>, que guarda los datos en almacenamiento compartido (S3/GCS) en vez de en disco local, así cualquier nodo de cómputo puede leer cualquier parte sin copiar entre réplicas.</li>
             <li>Configurar <b>ClickPipes</b> (el conector Kafka nativo administrado) apuntando al tópico enriquecido — no hace falta levantar Kafka Connect ni nada externo.</li>
             <li>Definir usuarios/roles desde la consola; TLS y balanceo ya vienen incluidos en el servicio.</li>
           </ol>
