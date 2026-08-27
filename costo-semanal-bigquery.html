@@ -146,42 +146,43 @@
     <div class="eyebrow"><span class="dot"></span>datos actualizados en tiempo real</div>
     <h1>Costo semanal de BigQuery</h1>
     <div class="subtitle">
-      Semana en curso: <b>lunes 17 – domingo 23 de agosto de 2026</b> · con datos hasta el
-      <b>miércoles 19</b> (llevamos 3 de los 7 días). Generado el 19 de agosto de 2026.
+      Semana en curso: <b>lunes 24 – domingo 30 de agosto de 2026</b> · con datos hasta el
+      <b>jueves 27</b> (llevamos 4 de los 7 días). Generado el 27 de agosto de 2026.
       El costo es un estimado según el precio público de Google por la cantidad de información revisada.
     </div>
   </div>
 
   <div class="stats">
     <div class="tile hero">
-      <div class="label">Costo acumulado esta semana (lun–mié)</div>
-      <div class="value">$583.04</div>
-      <div class="sub"><span class="pill up">▲ 5.2%</span> vs. mismos 3 días de la semana pasada ($554.33)</div>
+      <div class="label">Costo acumulado esta semana (lun–jue)</div>
+      <div class="value">$1,523.63</div>
+      <div class="sub"><span class="pill up">▲ 81.7%</span> vs. mismos 4 días de la semana pasada ($838.43)</div>
     </div>
     <div class="tile">
       <div class="label">Queries ejecutadas</div>
-      <div class="value">2,332</div>
-      <div class="sub"><span class="pill down">▼ 22.7%</span> vs. mismos 3 días ($3,017 q)</div>
+      <div class="value">7,850</div>
+      <div class="sub"><span class="pill up">▲ 63.3%</span> vs. mismos 4 días (4,808 q)</div>
     </div>
     <div class="tile">
       <div class="label">TiB facturados</div>
-      <div class="value">93.29</div>
+      <div class="value">243.78</div>
       <div class="sub">≈ $6.25 por TiB escaneado</div>
     </div>
     <div class="tile">
-      <div class="label">Última semana completa (10–16 ago)</div>
-      <div class="value">$1,094</div>
-      <div class="sub"><span class="pill up">▲ 20.3%</span> vs. semana previa ($910.02)</div>
+      <div class="label">Última semana completa (17–23 ago)</div>
+      <div class="value">$1,025</div>
+      <div class="sub"><span class="pill down">▼ 6.3%</span> vs. semana previa ($1,094.36)</div>
     </div>
   </div>
 
   <div class="insight">
     <div class="ico">📉</div>
     <p>
-      <b>El costo semanal bajó cerca de 84% después de un ajuste hecho a finales de julio.</b>
-      Promedio semanal de junio a julio (antes del ajuste): <b>$6,471</b>.
-      Promedio de las dos semanas completas de agosto (después del ajuste): <b>$1,002</b>. La tendencia de abajo
-      muestra el cambio justo después de la semana del 27 de julio.
+      <b>El costo semanal se mantuvo estable entre $910 y $1,095 durante tres semanas seguidas (03–23 de agosto)</b>,
+      después de la baja de ~84% de finales de julio. Esta semana (24 ago, en curso) ya lleva <b>$1,524 en solo
+      4 días</b> — más alto que el ritmo de las tres semanas anteriores, aunque todavía muy por debajo de los
+      $5,000–7,500 de junio-julio. Vale la pena seguirlo los próximos días para ver si se estabiliza o es un pico
+      puntual.
     </p>
   </div>
 
@@ -190,14 +191,14 @@
       <h2>Tendencia · últimas 9 semanas</h2>
       <div class="meta">nivel=semana · JOBS_BY_PROJECT</div>
     </div>
-    <div class="card-note">Semana = lunes a domingo. La última barra (17 ago) está en curso — línea punteada y marcador hueco.</div>
+    <div class="card-note">Semana = lunes a domingo. La última barra (24 ago) está en curso — línea punteada y marcador hueco.</div>
     <div class="chart-wrap">
       <svg id="trendChart" viewBox="0 0 960 300" width="100%" style="overflow:visible; margin-top:10px;">
         <!-- gridlines -->
         <g id="trendGrid"></g>
         <!-- annotation -->
-        <line x1="585" y1="20" x2="585" y2="260" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>
-        <text x="591" y="30" class="axis-label" font-family="IBM Plex Mono, monospace">clustering 29 jul</text>
+        <line x1="544" y1="20" x2="544" y2="260" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>
+        <text x="550" y="30" class="axis-label" font-family="IBM Plex Mono, monospace">clustering 29 jul</text>
         <!-- area fill -->
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -234,7 +235,7 @@
         <h2>Queries por usuario</h2>
         <div class="meta">semana en curso</div>
       </div>
-      <div class="card-note">diego.diazv lidera esta semana; la semana pasada completa lideró jose.ayalape con $805.27 — un giro notable.</div>
+      <div class="card-note">diego.diazv lidera esta semana; la semana pasada completa lideró jose.ayalape con $582.84 — un giro notable.</div>
       <div class="barlist" id="userBars"></div>
     </div>
 
@@ -304,54 +305,56 @@
     {label:'27 jul', full:'Semana del 27 jul', cost:5011.40, q:7552, tib:801.825, partial:false},
     {label:'03 ago', full:'Semana del 03 ago', cost:910.02,  q:6111, tib:145.603, partial:false},
     {label:'10 ago', full:'Semana del 10 ago', cost:1094.36, q:7040, tib:175.097, partial:false},
-    {label:'17 ago', full:'Semana del 17 ago (en curso)', cost:583.04, q:2332, tib:93.286, partial:true}
+    {label:'17 ago', full:'Semana del 17 ago', cost:1025.32, q:7492, tib:164.050, partial:false},
+    {label:'24 ago', full:'Semana del 24 ago (en curso)', cost:1523.63, q:7850, tib:243.780, partial:true}
   ];
 
   var days = [
-    {label:'Lun 17', cost:409.03, q:1230, tib:65.445, partial:false},
-    {label:'Mar 18', cost:173.18, q:1021, tib:27.709, partial:false},
-    {label:'Mié 19*', cost:0.82, q:86, tib:0.131, partial:true}
+    {label:'Lun 24', cost:104.90, q:1041, tib:16.783, partial:false},
+    {label:'Mar 25', cost:197.93, q:1099, tib:31.668, partial:false},
+    {label:'Mié 26', cost:607.71, q:3026, tib:97.234, partial:false},
+    {label:'Jue 27*', cost:613.09, q:2684, tib:98.095, partial:true}
   ];
 
   var users = [
-    {name:'diego.diazv', mail:'diego.diazv', cost:295.33, q:278, tib:47.252, color:'var(--series-diego)'},
-    {name:'jose.ayalape', mail:'jose.ayalape', cost:271.01, q:2026, tib:43.362, color:'var(--series-jose)'},
-    {name:'alejandro.castillosa', mail:'alejandro.castillosa', cost:16.70, q:29, tib:2.672, color:'var(--series-alejandro)'}
+    {name:'diego.diazv', mail:'diego.diazv', cost:809.37, q:2019, tib:129.499, color:'var(--series-diego)'},
+    {name:'alejandro.castillosa', mail:'alejandro.castillosa', cost:487.74, q:2417, tib:78.038, color:'var(--series-alejandro)'},
+    {name:'jose.ayalape', mail:'jose.ayalape', cost:226.52, q:3416, tib:36.242, color:'var(--series-jose)'}
   ];
 
   var tables = [
-    {name:'analytics_153774428.events_*', cost:311.86, q:291, users:2},
-    {name:'analytics_153774428.events_intraday_*', cost:310.63, q:298, users:2},
-    {name:'KPIS.Iptv', cost:249.64, q:168, users:1},
-    {name:'KPIS.EventMKP', cost:31.43, q:373, users:1},
-    {name:'KPIS.PingServers', cost:7.88, q:603, users:1},
-    {name:'KPIS.EventosMobile', cost:6.24, q:251, users:1},
-    {name:'analytics…events_intraday_20260817', cost:5.28, q:356, users:1},
-    {name:'analytics…events_intraday_20260816', cost:2.87, q:82, users:1}
+    {name:'analytics_153774428.events_*', cost:1293.58, q:4245, users:2},
+    {name:'analytics_153774428.events_intraday_*', cost:1276.93, q:4275, users:2},
+    {name:'KPIS.Iptv', cost:198.58, q:175, users:1},
+    {name:'KPIS.EventMKP', cost:26.18, q:716, users:1},
+    {name:'KPIS.PingServers', cost:12.74, q:1261, users:1},
+    {name:'KPIS.EventosMobile', cost:5.28, q:334, users:1},
+    {name:'analytics…events_intraday_20260825', cost:4.56, q:334, users:1},
+    {name:'analytics…events_intraday_20260826', cost:4.52, q:326, users:2}
   ];
 
   var cross = [
-    ['diego.diazv','analytics_153774428.events_*',262,295.16,'var(--series-diego)'],
-    ['diego.diazv','analytics_153774428.events_intraday_*',270,294.86,'var(--series-diego)'],
-    ['jose.ayalape','KPIS.Iptv',168,249.64,'var(--series-jose)'],
-    ['jose.ayalape','KPIS.EventMKP',373,31.43,'var(--series-jose)'],
-    ['alejandro.castillosa','analytics_153774428.events_*',29,16.70,'var(--series-alejandro)'],
-    ['alejandro.castillosa','analytics_153774428.events_intraday_*',28,15.77,'var(--series-alejandro)'],
-    ['jose.ayalape','KPIS.PingServers',603,7.88,'var(--series-jose)'],
-    ['jose.ayalape','KPIS.EventosMobile',251,6.24,'var(--series-jose)'],
-    ['jose.ayalape','analytics…events_intraday_20260817',356,5.28,'var(--series-jose)'],
-    ['jose.ayalape','analytics…events_intraday_20260816',82,2.87,'var(--series-jose)']
+    ['diego.diazv','analytics_153774428.events_*',1870,806.25,'var(--series-diego)'],
+    ['diego.diazv','analytics_153774428.events_intraday_*',1900,806.15,'var(--series-diego)'],
+    ['alejandro.castillosa','analytics_153774428.events_*',2375,487.33,'var(--series-alejandro)'],
+    ['alejandro.castillosa','analytics_153774428.events_intraday_*',2375,470.79,'var(--series-alejandro)'],
+    ['jose.ayalape','KPIS.Iptv',175,198.58,'var(--series-jose)'],
+    ['jose.ayalape','KPIS.EventMKP',716,26.18,'var(--series-jose)'],
+    ['jose.ayalape','KPIS.PingServers',1261,12.74,'var(--series-jose)'],
+    ['jose.ayalape','KPIS.EventosMobile',334,5.28,'var(--series-jose)'],
+    ['jose.ayalape','analytics…events_intraday_20260825',334,4.56,'var(--series-jose)'],
+    ['jose.ayalape','analytics…events_intraday_20260826',325,4.46,'var(--series-jose)']
   ];
 
   var topQueries = [
-    ['jose.ayalape','2026-08-18 16:25',0.697,4.36,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
-    ['jose.ayalape','2026-08-18 13:57',0.697,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
-    ['jose.ayalape','2026-08-17 19:57',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
-    ['jose.ayalape','2026-08-17 19:58',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
-    ['jose.ayalape','2026-08-17 16:35',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
-    ['jose.ayalape','2026-08-17 14:21',0.696,4.35,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
-    ['diego.diazv','2026-08-17 20:02',0.363,2.27,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…'],
-    ['diego.diazv','2026-08-17 17:22',0.362,2.26,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…']
+    ['alejandro.castillosa','2026-08-25 18:16',1.8806,11.75,'select * from `analytics_153774428.events_*` limit 10'],
+    ['jose.ayalape','2026-08-26 15:56',0.7027,4.39,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['jose.ayalape','2026-08-25 16:23',0.7026,4.39,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['jose.ayalape','2026-08-25 02:21',0.7024,4.39,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['jose.ayalape','2026-08-24 16:39',0.7023,4.39,'SELECT clmn0_, clmn2_, clmn3_, clmn4_, clmn5_, clmn8_ AS `t0_qt_t2lf3fsqpd` FROM (…'],
+    ['diego.diazv','2026-08-24 22:35',0.3501,2.19,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…'],
+    ['diego.diazv','2026-08-24 19:42',0.3487,2.18,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…'],
+    ['diego.diazv','2026-08-24 19:41',0.3487,2.18,'SELECT clmn1_, SUM(clmn0_) AS `t0_qt_iv982s2usd` FROM (SELECT t0.`cuentas` AS clmn0_, t0…']
   ];
 
   var fmtUSD = function(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); };
@@ -422,7 +425,7 @@
   (function(){
     var svg = document.getElementById('dayChart');
     var padL=50, padR=20, top=10, bottom=120, w=960-padL-padR;
-    var maxY = 450;
+    var maxY = 700;
     var n = days.length;
     var bw = 70;
     var slot = w/n;
@@ -483,7 +486,7 @@
         '<div class="amt">'+fmtUSD(t.cost)+'</div>'+
       '</div>';
     });
-    html += '<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">+ 7 tablas adicionales · $4.56 combinados</div>';
+    html += '<div style="font-size:11.5px;color:var(--muted);margin-top:2px;">+ 43 tablas adicionales · $11.30 combinados</div>';
     document.getElementById('tableBars').innerHTML = html;
   })();
 
