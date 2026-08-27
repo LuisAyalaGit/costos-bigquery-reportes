@@ -188,7 +188,7 @@
 
   <div class="card">
     <div class="card-head">
-      <h2>Tendencia · últimas 10 semanas</h2>
+      <h2>Tendencia · últimas 5 semanas</h2>
       <div class="meta">nivel=semana · JOBS_BY_PROJECT</div>
     </div>
     <div class="card-note">Semana = lunes a domingo. La última barra (24 ago) está en curso — línea punteada y marcador hueco.</div>
@@ -197,8 +197,8 @@
         <!-- gridlines -->
         <g id="trendGrid"></g>
         <!-- annotation -->
-        <line x1="544" y1="20" x2="544" y2="260" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>
-        <text x="550" y="30" class="axis-label" font-family="IBM Plex Mono, monospace">clustering 29 jul</text>
+        <line x1="161" y1="20" x2="161" y2="260" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 4" opacity="0.6"/>
+        <text x="167" y="30" class="axis-label" font-family="IBM Plex Mono, monospace">clustering 29 jul</text>
         <!-- area fill -->
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -297,11 +297,6 @@
 (function(){
   // ---------- data ----------
   var weeks = [
-    {label:'22 jun', full:'Semana del 22 jun', cost:4969.78, q:4790, tib:795.165, partial:false},
-    {label:'29 jun', full:'Semana del 29 jun', cost:6945.02, q:6437, tib:1111.203, partial:false},
-    {label:'06 jul', full:'Semana del 06 jul', cost:7245.07, q:6012, tib:1159.211, partial:false},
-    {label:'13 jul', full:'Semana del 13 jul', cost:7529.17, q:3849, tib:1204.667, partial:false},
-    {label:'20 jul', full:'Semana del 20 jul', cost:7127.41, q:5715, tib:1140.386, partial:false},
     {label:'27 jul', full:'Semana del 27 jul', cost:5011.40, q:7552, tib:801.825, partial:false},
     {label:'03 ago', full:'Semana del 03 ago', cost:910.02,  q:6111, tib:145.603, partial:false},
     {label:'10 ago', full:'Semana del 10 ago', cost:1094.36, q:7040, tib:175.097, partial:false},
@@ -365,14 +360,14 @@
   (function(){
     var svg = document.getElementById('trendChart');
     var padL=50, padR=20, top=20, bottom=260, w=960-padL-padR;
-    var maxY = 8000;
+    var maxY = 6000;
     var n = weeks.length;
     var stepX = w/(n-1);
     var x = function(i){ return padL + i*stepX; };
     var y = function(v){ return bottom - (v/maxY)*(bottom-top); };
 
     // grid
-    var gridTicks = [0,2000,4000,6000,8000];
+    var gridTicks = [0,1500,3000,4500,6000];
     var gridHtml='';
     gridTicks.forEach(function(t){
       var gy = y(t);
