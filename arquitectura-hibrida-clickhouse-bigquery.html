@@ -1,0 +1,283 @@
+<title>Arquitectura Híbrida: ClickHouse + BigQuery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --prov-bq:#2a78d6; --prov-ch:#1baf7a; --prov-chc:#008300; --prov-gcs:#8430ce; --prov-looker:#4a3aa7;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --prov-bq:#5b9eec; --prov-ch:#37c290; --prov-chc:#3fc23f; --prov-gcs:#b48ae0; --prov-looker:#9085e9;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --prov-bq:#5b9eec; --prov-ch:#37c290; --prov-chc:#3fc23f; --prov-gcs:#b48ae0; --prov-looker:#9085e9;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--page); color:var(--ink); font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:84ch; margin-top:4px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 26px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:94ch; }
+
+  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 18px; margin-top:14px; }
+  .callout.warn{ border-color:var(--critical); background:rgba(208,59,59,.06); }
+  .callout.good{ border-color:var(--good); background:rgba(12,163,12,.06); }
+  .callout .ico{ font-size:18px; line-height:1.3; }
+  .callout p{ margin:0; font-size:13px; color:var(--ink-2); line-height:1.7; }
+  .callout b{ color:var(--ink); }
+
+  figure{ margin:18px 0 6px; }
+  figure svg{ width:100%; height:auto; display:block; }
+  figcaption{ font-size:12px; color:var(--muted); text-align:center; margin-top:10px; }
+  .dbox{ fill:var(--surface-2); stroke:var(--border); stroke-width:1.5; }
+  .dbox.accent{ stroke-width:2; }
+  .dtext{ fill:var(--ink); font-family:"IBM Plex Sans", sans-serif; }
+  .dsub{ fill:var(--muted); font-family:"IBM Plex Mono", monospace; }
+  .darrow{ stroke:var(--ink-2); stroke-width:1.6; fill:none; }
+  .dlabel{ fill:var(--ink-2); font-family:"IBM Plex Mono", monospace; }
+
+  .swatch{ display:inline-block; width:9px; height:9px; border-radius:50%; }
+  .barlist{ display:flex; flex-direction:column; gap:14px; margin-top:16px; }
+  .barrow{ display:grid; grid-template-columns:220px 1fr 110px; align-items:center; gap:10px; }
+  .barrow .who{ font-size:13px; font-weight:500; color:var(--ink); display:flex; align-items:center; gap:7px; }
+  .barrow .who small{ display:block; font:400 11px "IBM Plex Mono",monospace; color:var(--muted); font-weight:400; }
+  .track{ background:var(--surface-2); border-radius:6px; height:22px; position:relative; overflow:hidden; }
+  .fill{ position:absolute; inset:0 auto 0 0; border-radius:6px; }
+  .barrow .amt{ text-align:right; font:600 13px "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+  thead th{ text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+
+  .qual-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:16px; }
+  .qual-card{ border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:var(--surface-2); }
+  .qual-card h3{ margin:0 0 8px; font-size:14px; display:flex; align-items:center; gap:8px; }
+  .qual-card ul{ margin:0; padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.7; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:98ch; margin:0 0 8px; }
+  footer a{ color:var(--accent); }
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>propuesta del equipo · complementa el comparativo de los 5 motores</div>
+    <h1>Arquitectura híbrida: ClickHouse + BigQuery en paralelo</h1>
+    <div class="subtitle">
+      En vez de elegir un solo motor para todo, esta propuesta separa el trabajo en dos: una capa <b>rápida</b>
+      para consultas operativas (ClickHouse) y una capa <b>histórica</b> para análisis y reportes (BigQuery +
+      Looker Studio), alimentadas ambas desde el mismo tópico de Kafka al mismo tiempo.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Arquitectura propuesta</h2>
+      <div class="meta">STB → Kafka → dos destinos en paralelo</div>
+    </div>
+    <div class="card-note">
+      Kafka reparte el mismo tópico hacia dos Sink Connectors independientes — ninguno depende del otro, y cada
+      uno puede fallar o reprocesar sin afectar al otro.
+    </div>
+    <figure>
+      <svg viewBox="0 0 700 400" role="img" aria-label="Los STB (4 millones) mandan eventos en JSON a Kafka. Kafka reparte el mismo tópico hacia dos caminos en paralelo: ClickHouse, que sirve datos rápidos para consultas operativas; y GCS o BigQuery, que guarda el histórico y alimenta Looker Studio para reportes.">
+        <defs>
+          <marker id="arrowH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor" class="dlabel"></path>
+          </marker>
+        </defs>
+
+        <!-- STB -->
+        <rect class="dbox accent" x="250" y="10" width="200" height="55" rx="8" style="stroke:var(--muted)"></rect>
+        <text class="dtext" x="350" y="34" text-anchor="middle" font-size="14" font-weight="600">STB</text>
+        <text class="dsub" x="350" y="50" text-anchor="middle" font-size="9">4 millones de dispositivos</text>
+
+        <line class="darrow" x1="350" y1="65" x2="350" y2="98" marker-end="url(#arrowH)"></line>
+        <text class="dlabel" x="358" y="85" font-size="8.5">JSON</text>
+
+        <!-- Kafka -->
+        <rect class="dbox accent" x="270" y="100" width="160" height="55" rx="8" style="stroke:var(--accent)"></rect>
+        <text class="dtext" x="350" y="132" text-anchor="middle" font-size="15" font-weight="700" style="fill:var(--accent)">Kafka</text>
+
+        <!-- bifurcación -->
+        <line class="darrow" x1="350" y1="155" x2="350" y2="180"></line>
+        <line class="darrow" x1="150" y1="180" x2="550" y2="180"></line>
+        <line class="darrow" x1="150" y1="180" x2="150" y2="205" marker-end="url(#arrowH)"></line>
+        <line class="darrow" x1="550" y1="180" x2="550" y2="205" marker-end="url(#arrowH)"></line>
+
+        <!-- ClickHouse -->
+        <rect class="dbox accent" x="55" y="207" width="190" height="65" rx="8" style="stroke:var(--prov-ch)"></rect>
+        <text class="dtext" x="150" y="234" text-anchor="middle" font-size="13" font-weight="600" style="fill:var(--prov-ch)">ClickHouse</text>
+        <text class="dsub" x="150" y="251" text-anchor="middle" font-size="8.5">datos rápidos, ventana reciente</text>
+        <text class="dsub" x="150" y="263" text-anchor="middle" font-size="8">(Cloud o autoalojado)</text>
+
+        <line class="darrow" x1="150" y1="272" x2="150" y2="305" marker-end="url(#arrowH)"></line>
+
+        <rect class="dbox" x="55" y="307" width="190" height="46" rx="8"></rect>
+        <text class="dtext" x="150" y="326" text-anchor="middle" font-size="11" font-weight="600">Consultas operativas</text>
+        <text class="dsub" x="150" y="341" text-anchor="middle" font-size="8">dashboards en vivo, apps internas</text>
+
+        <!-- GCS / BigQuery -->
+        <rect class="dbox accent" x="455" y="207" width="190" height="65" rx="8" style="stroke:var(--prov-bq)"></rect>
+        <text class="dtext" x="550" y="230" text-anchor="middle" font-size="12" font-weight="600"><tspan style="fill:var(--prov-gcs)">GCS</tspan><tspan style="fill:var(--muted)"> / </tspan><tspan style="fill:var(--prov-bq)">BigQuery</tspan></text>
+        <text class="dsub" x="550" y="251" text-anchor="middle" font-size="8.5">histórico, retención completa</text>
+        <text class="dsub" x="550" y="263" text-anchor="middle" font-size="8">(rol de GCS: por definir — ver abajo)</text>
+
+        <line class="darrow" x1="550" y1="272" x2="550" y2="305" marker-end="url(#arrowH)"></line>
+
+        <rect class="dbox" x="455" y="307" width="190" height="46" rx="8"></rect>
+        <text class="dtext" x="550" y="326" text-anchor="middle" font-size="11" font-weight="600" style="fill:var(--prov-looker)">Looker Studio</text>
+        <text class="dsub" x="550" y="341" text-anchor="middle" font-size="8">reportes y dashboards históricos</text>
+      </svg>
+      <figcaption>El mismo tópico Kafka alimenta ambos caminos al mismo tiempo — no hay dependencia entre ellos.</figcaption>
+    </figure>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Costo mensual combinado</h2>
+      <div class="meta">mes 12 · escenario STB medio (705.2 ev/s, 392 B/evento)</div>
+    </div>
+    <div class="card-note">
+      A diferencia de los reportes anteriores (elegir 1 de 5 motores), aquí se pagan <b>dos motores a la vez</b> —
+      el costo de BigQuery ya no cambia por escoger esta arquitectura (sigue siendo $427.38/mes, storage + consultas,
+      igual que en "Ingesta de Eventos STB"); lo nuevo es sumarle ClickHouse.
+    </div>
+    <div class="barlist">
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud + BigQuery<small>recomendado a este volumen</small></div>
+        <div class="track"><div class="fill" style="width:86.7%; background:var(--prov-chc);"></div></div>
+        <div class="amt">$1,147.11</div>
+      </div>
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse autoalojado + BigQuery<small>infra propia, sin GCS</small></div>
+        <div class="track"><div class="fill" style="width:100%; background:var(--prov-ch);"></div></div>
+        <div class="amt">$1,321.92</div>
+      </div>
+    </div>
+    <div class="card-note" style="margin-top:6px;">Sumar GCS como archivo permanente es opcional y se cotiza aparte (ver tabla abajo) — no es un tercer total comparable a los de arriba.</div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Componente</th><th class="num">Costo/mes</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td class="name">BigQuery (storage + consultas)</td><td class="num">$427.38</td><td>Mismo número que en "Ingesta de Eventos STB" — no cambia con esta arquitectura</td></tr>
+          <tr><td class="name">ClickHouse Cloud (tier Scale, sin TTL)</td><td class="num">$719.73</td><td>Cómputo $499 + almacenamiento sobre 8,724.4 GB acumulados</td></tr>
+          <tr><td class="name">ClickHouse autoalojado (3 nodos)</td><td class="num">$894.54</td><td>Infraestructura fija $880 + tránsito inter-nodo</td></tr>
+          <tr><td class="name">GCS Standard (archivo permanente, opcional)</td><td class="num">$174.49</td><td>8,724.4 GB × $0.02/GB-mes — solo si se decide guardar el JSON crudo para siempre</td></tr>
+          <tr><td class="name">GCS Nearline (archivo permanente, opcional)</td><td class="num">$87.24</td><td>Misma cantidad de datos, a $0.01/GB-mes — más barato si no se lee seguido</td></tr>
+          <tr class="total"><td class="name">Total recomendado (CH Cloud + BigQuery, sin GCS permanente)</td><td class="num">$1,147.11</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout good">
+      <div class="ico">💡</div>
+      <p><b>Aplicar un TTL de 90 días en ClickHouse baja bastante el costo:</b> si ClickHouse solo guarda los
+      últimos 90 días (en vez de acumular todo desde el inicio) y BigQuery se queda con el histórico completo,
+      el almacenamiento de ClickHouse Cloud cae de $220.73 a <b>~$54.37/mes</b> — el total combinado bajaría de
+      $1,147.11 a <b>~$980.75/mes</b> (~14.5% menos), sin perder ni un solo evento histórico (sigue en BigQuery).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Decisiones abiertas</h2></div>
+    <div class="qual-grid">
+      <div class="qual-card">
+        <h3>🗄️ ¿Qué rol tiene GCS?</h3>
+        <ul>
+          <li><b>Opción A — sin GCS permanente:</b> Kafka Sink Connector escribe directo a BigQuery (como ya está calculado en los otros reportes); GCS no entra al flujo, o solo se usa como respaldo ocasional.</li>
+          <li><b>Opción B — GCS como archivo permanente del JSON crudo:</b> además de BigQuery, un Sink Connector aparte guarda el mensaje original en GCS para siempre — útil si algún día hay que reprocesar el dato crudo. Cuesta $87–174/mes extra según la clase de almacenamiento.</li>
+          <li><b>Opción C — GCS como paso intermedio:</b> Kafka → GCS → carga programada a BigQuery. Más barato de ingesta, pero el histórico se actualiza por lotes, no en streaming.</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3>⏱️ ¿Cuánto tiempo guarda ClickHouse?</h3>
+        <ul>
+          <li>Si "datos rápidos" significa solo lo reciente (últimos 30/90/180 días), un TTL automático en la tabla libera espacio solo y baja el costo de almacenamiento — ver el cálculo de arriba con 90 días.</li>
+          <li>Sin TTL, ClickHouse termina guardando lo mismo que BigQuery pero pagando dos veces por el mismo histórico — vale la pena decidir esto antes de crear la tabla, cambiarlo después implica reescribirla.</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3>⚙️ ¿ClickHouse Cloud o autoalojado?</h3>
+        <ul>
+          <li>Al volumen real de STB (medio), <b>Cloud sale más barato</b> ($719.73 vs $894.54/mes) — mismo resultado que ya se vio en "Comparativo de Backends STB".</li>
+          <li>Esto se invierte a volúmenes mucho más grandes, donde tener infraestructura propia a tope de uso empieza a rendir más que pagar el piso comprometido de Cloud.</li>
+        </ul>
+      </div>
+      <div class="qual-card">
+        <h3>📊 ¿Looker Studio también sobre ClickHouse?</h3>
+        <ul>
+          <li>Looker Studio se conecta nativo y sin fricción a BigQuery — por eso el diagrama lo pone del lado histórico.</li>
+          <li>Conectarlo a ClickHouse requiere un conector de terceros, menos maduro; si se necesitan dashboards sobre los datos rápidos, herramientas como Grafana o Superset son más el estándar para ClickHouse.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Recomendación</h2></div>
+    <div class="callout">
+      <div class="ico">✅</div>
+      <p><b>ClickHouse Cloud (tier Scale) con TTL de 90 días + BigQuery directo vía Sink Connector, sin GCS
+      permanente por ahora.</b> Es la combinación más barata de las evaluadas (~$980.75/mes al volumen STB medio),
+      no requiere operar infraestructura propia, y no se pierde nada del histórico — sigue completo en BigQuery.
+      Si más adelante surge una necesidad concreta de reprocesar el JSON crudo (no solo lo que ya transformó el
+      Worker de enriquecimiento), ahí sí valdría la pena sumar GCS como archivo permanente.</p>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      <b style="color:var(--ink-2)">Metodología:</b> costos de BigQuery y ClickHouse (Cloud y autoalojado) tomados
+      directamente del escenario STB — medio (705.2 eventos/seg, 392 B/evento, 8,724.4 GB acumulados a mes 12) ya
+      calculado en el reporte "Ingesta de Eventos STB" — mismas tarifas, mismas fuentes. GCS Standard (multi-región
+      US) $0.02/GB-mes, GCS Nearline $0.01/GB-mes — <a href="https://cloud.google.com/storage/pricing" target="_blank" rel="noopener">Google Cloud, "Cloud Storage pricing"</a>.
+      El cálculo de TTL a 90 días asume el mismo ritmo de ingesta diario (23.88 GB/día) sin crecimiento adicional;
+      un TTL real requeriría confirmar la política de retención con el equipo antes de implementarse.
+    </p>
+    <p>Esta es una arquitectura propuesta por el equipo, alternativa al comparativo de "un solo motor" de los
+    reportes anteriores — no reemplaza esos reportes, los complementa para el caso en que se decida usar dos
+    motores en paralelo en vez de uno solo.</p>
+    <div class="chips">
+      <span class="chip">propuesta del equipo</span>
+      <span class="chip">ClickHouse + BigQuery en paralelo</span>
+      <span class="chip">estimado, no factura</span>
+      <span class="chip">GCS: rol por definir</span>
+    </div>
+  </footer>
+</div>
