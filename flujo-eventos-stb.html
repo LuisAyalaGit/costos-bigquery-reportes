@@ -1,0 +1,318 @@
+<title>Flujo de Eventos STB</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --prov-chc:#008300; --chc-soft:#E4F4E4;
+    --dash:#b3720a; --dash-soft:#FBF0DD;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --prov-chc:#3fc23f; --chc-soft:rgba(63,194,63,0.14);
+      --dash:#e3a339; --dash-soft:rgba(227,163,57,0.14);
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --prov-chc:#3fc23f; --chc-soft:rgba(63,194,63,0.14);
+    --dash:#e3a339; --dash-soft:rgba(227,163,57,0.14);
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--page); color:var(--ink); font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1100px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:88ch; margin-top:4px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 26px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:96ch; }
+
+  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 18px; margin-top:14px; }
+  .callout.good{ border-color:var(--good); background:rgba(12,163,12,.06); }
+  .callout .ico{ font-size:18px; line-height:1.3; }
+  .callout p{ margin:0; font-size:13px; color:var(--ink-2); line-height:1.7; }
+  .callout b{ color:var(--ink); }
+  .callout a{ color: var(--accent); }
+
+  figure{ margin:18px 0 6px; }
+  figure svg{ width:100%; height:auto; display:block; }
+  figcaption{ font-size:12px; color:var(--muted); text-align:center; margin-top:10px; }
+
+  code{ background:var(--surface-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; font:500 12px "IBM Plex Mono",monospace; color:var(--accent-ink); }
+
+  /* --- flow steps --- */
+  .flow{ display:flex; flex-direction:column; gap:14px; margin-top:8px; }
+  .step{ display:grid; grid-template-columns:44px 1fr; gap:16px; }
+  .step .chip{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font:700 16px "IBM Plex Mono",monospace; flex:none; }
+  .step.transport .chip{ background:var(--accent-soft); color:var(--accent-ink); }
+  .step.chdb .chip{ background:var(--chc-soft); color:var(--prov-chc); }
+  .step.dash .chip{ background:var(--dash-soft); color:var(--dash); }
+  .step h3{ margin:0 0 3px; font-size:16px; display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .step .role{ font-size:12.5px; color:var(--muted); font-style:italic; margin:0 0 10px; }
+  .step ul{ margin:0; padding-left:18px; font-size:13px; color:var(--ink-2); line-height:1.75; }
+  .step ul li b{ color:var(--ink); }
+  .swatch-line{ width:3px; border-radius:2px; }
+  .step.transport{ border-left:3px solid var(--accent); padding-left:14px; margin-left:-3px; }
+  .step.chdb{ border-left:3px solid var(--prov-chc); padding-left:14px; margin-left:-3px; }
+  .step.dash{ border-left:3px solid var(--dash); padding-left:14px; margin-left:-3px; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .chip-tag{ font:500 11px "IBM Plex Mono",monospace; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border); padding:4px 9px; border-radius:100px; }
+
+  footer{ margin-top:32px; padding-top:20px; border-top:1px solid var(--border); }
+  footer p{ font-size:12px; color:var(--muted); line-height:1.75; max-width:98ch; margin:0 0 8px; }
+  footer a{ color:var(--accent); }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>flujo de datos · complementa la guía de configuración de ClickHouse Cloud</div>
+    <h1>Flujo de eventos STB, paso a paso</h1>
+    <div class="subtitle">
+      El camino completo de un evento desde que ocurre en el STB hasta que aparece en un dashboard — ocho
+      pasos, qué hace cada uno y por qué existe. Esta es la variante <b>simplificada</b> que se está probando
+      en el laboratorio: un solo Gateway hace lo que antes hacían Broker + Bridge, y el enriquecimiento ocurre
+      dentro de ClickHouse (vista materializada) en vez de en un Worker separado antes de Kafka.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>El camino completo</h2><div class="meta">8 pasos</div></div>
+    <figure>
+      <svg viewBox="0 0 680 1160" role="img" aria-label="Un evento del STB pasa por: API/Gateway que autentica y valida; Kafka que lo guarda en buffer; ClickPipes que lo consume continuamente; ClickHouse RAW que lo guarda como JSON crudo; una vista materializada que lo transforma automáticamente; ClickHouse Analítica que guarda el resultado ya tipado; y un Dashboard que lo consulta y visualiza.">
+        <defs>
+          <marker id="af" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+
+        <!-- 1 STB -->
+        <rect x="140" y="18" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--accent-soft);stroke:var(--accent)"></rect>
+        <text x="340" y="44" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--accent-ink)">1 · STB</text>
+        <text x="340" y="63" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" style="fill:var(--accent-ink)">genera el evento</text>
+
+        <line x1="340" y1="84" x2="340" y2="146" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="118" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">evento (MQTT/HTTPS)</text>
+
+        <!-- 2 Gateway -->
+        <rect x="140" y="148" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--accent-soft);stroke:var(--accent)"></rect>
+        <text x="340" y="174" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--accent-ink)">2 · API / Gateway</text>
+        <text x="340" y="193" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" style="fill:var(--accent-ink)">autentica y valida</text>
+
+        <line x1="340" y1="214" x2="340" y2="276" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="248" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">publica en el tópico</text>
+
+        <!-- 3 Kafka -->
+        <rect x="140" y="278" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--accent-soft);stroke:var(--accent)"></rect>
+        <text x="340" y="304" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--accent-ink)">3 · Kafka</text>
+        <text x="340" y="323" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" style="fill:var(--accent-ink)">buffer / cola de espera</text>
+
+        <line x1="340" y1="344" x2="340" y2="406" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="378" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">consume continuamente</text>
+
+        <!-- 4 ClickPipes -->
+        <rect x="140" y="408" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--accent-soft);stroke:var(--accent)"></rect>
+        <text x="340" y="434" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--accent-ink)">4 · ClickPipes</text>
+        <text x="340" y="453" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" style="fill:var(--accent-ink)">conector Kafka administrado</text>
+
+        <line x1="340" y1="474" x2="340" y2="536" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="508" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">INSERT en lote</text>
+
+        <!-- 5 ClickHouse RAW -->
+        <rect x="140" y="538" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--chc-soft);stroke:var(--prov-chc)"></rect>
+        <text x="340" y="562" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--prov-chc)">5 · ClickHouse RAW</text>
+        <text x="340" y="580" text-anchor="middle" font-size="10" font-family="IBM Plex Mono" style="fill:var(--prov-chc)">stb_lab.eventos_stb_json</text>
+
+        <line x1="340" y1="604" x2="340" y2="666" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="638" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">dispara automático</text>
+
+        <!-- 6 Materialized View -->
+        <rect x="140" y="668" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--chc-soft);stroke:var(--prov-chc)"></rect>
+        <text x="340" y="692" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--prov-chc)">6 · Vista materializada</text>
+        <text x="340" y="710" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" style="fill:var(--prov-chc)">JSON → columnas tipadas</text>
+
+        <line x1="340" y1="734" x2="340" y2="796" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="768" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">escribe ya tipado</text>
+
+        <!-- 7 ClickHouse Analitica -->
+        <rect x="140" y="798" width="400" height="66" rx="10" stroke-width="1.4" style="fill:var(--chc-soft);stroke:var(--prov-chc)"></rect>
+        <text x="340" y="822" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--prov-chc)">7 · ClickHouse Analítica</text>
+        <text x="340" y="840" text-anchor="middle" font-size="10" font-family="IBM Plex Mono" style="fill:var(--prov-chc)">stb_lab.eventos_stb_analitica</text>
+
+        <line x1="340" y1="864" x2="340" y2="926" stroke="currentColor" stroke-width="1.6" marker-end="url(#af)" style="color:var(--muted)"></line>
+        <text x="356" y="898" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">consulta SQL</text>
+
+        <!-- 8 Dashboard -->
+        <rect x="140" y="928" width="400" height="66" rx="10" stroke-width="1.6" style="fill:var(--dash-soft);stroke:var(--dash)"></rect>
+        <text x="340" y="954" text-anchor="middle" font-size="14" font-weight="700" font-family="IBM Plex Sans" style="fill:var(--dash)">8 · Dashboard</text>
+        <text x="340" y="973" text-anchor="middle" font-size="10.5" font-family="IBM Plex Mono" style="fill:var(--dash)">visualiza y monitorea</text>
+
+        <!-- legend -->
+        <rect x="140" y="1030" width="14" height="14" rx="3" style="fill:var(--accent-soft);stroke:var(--accent)"></rect>
+        <text x="160" y="1041" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">transporte (fuera de ClickHouse)</text>
+        <rect x="140" y="1054" width="14" height="14" rx="3" style="fill:var(--chc-soft);stroke:var(--prov-chc)"></rect>
+        <text x="160" y="1065" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">dentro de ClickHouse Cloud</text>
+        <rect x="140" y="1078" width="14" height="14" rx="3" style="fill:var(--dash-soft);stroke:var(--dash)"></rect>
+        <text x="160" y="1089" font-size="10" font-family="IBM Plex Mono" style="fill:var(--muted)">consumo del dato (el destino final)</text>
+      </svg>
+      <figcaption>Ocho pasos, tres zonas de responsabilidad: transporte del evento, procesamiento dentro de ClickHouse Cloud, y consumo final en el dashboard.</figcaption>
+    </figure>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Qué hace cada paso, y para qué sirve</h2></div>
+
+    <div class="flow">
+
+      <div class="step transport">
+        <h3>1 · STB — generar evento</h3>
+        <p class="role">"Ocurrió algo en el STB y lo convierto en un evento."</p>
+        <ul>
+          <li>El dispositivo detecta una acción del usuario o del propio equipo y la convierte en un mensaje JSON pequeño.</li>
+          <li>No sabe nada de Kafka, ClickHouse ni del Gateway — solo arma el evento y lo manda a un destino fijo.</li>
+        </ul>
+        <div class="chips">
+          <span class="chip-tag">channel_change</span><span class="chip-tag">play</span><span class="chip-tag">pause</span>
+          <span class="chip-tag">buffering</span><span class="chip-tag">heartbeat</span><span class="chip-tag">error</span>
+        </div>
+      </div>
+
+      <div class="step transport">
+        <h3>2 · API / Gateway — recibir, autenticar y validar</h3>
+        <p class="role">"Recibo el evento y verifico que sea válido antes de dejarlo pasar."</p>
+        <ul>
+          <li>Valida la <b>autenticación</b> del dispositivo (certificado o token, según lo definido para el STB).</li>
+          <li>Valida que el <b>JSON</b> tenga la estructura y los campos obligatorios esperados.</li>
+          <li>Controla <b>tamaño y tráfico</b> — descarta o limita lo que se sale de lo razonable, antes de que le cueste algo a lo que viene después.</li>
+          <li>Publica el evento ya validado en el tópico de Kafka correspondiente.</li>
+        </ul>
+      </div>
+
+      <div class="step transport">
+        <h3>3 · Kafka — proteger y guardar temporalmente el stream</h3>
+        <p class="role">"Tengo los eventos seguros esperando."</p>
+        <ul>
+          <li>Funciona como <b>buffer</b>: absorbe picos de tráfico sin que el resto del sistema los sienta directamente.</li>
+          <li>Si ClickHouse se retrasa o se satura, los eventos <b>no se pierden</b> — se quedan en el tópico hasta que alguien los consuma.</li>
+          <li>Permite <b>reintentos</b> y <b>replay</b>: si algo falla después de Kafka, se puede volver a leer desde donde se quedó, sin pedirle nada de nuevo al STB.</li>
+        </ul>
+        <div class="callout">
+          <div class="ico">⏸️</div>
+          <p>Si ClickHouse se satura, los eventos simplemente <b>esperan en el tópico</b> (evento 1001, 1002, 1003…) hasta que ClickPipes pueda seguir consumiéndolos — nada se descarta.</p>
+        </div>
+      </div>
+
+      <div class="step transport">
+        <h3>4 · ClickPipes — consumir Kafka</h3>
+        <p class="role">"Voy tomando los eventos y metiéndolos a ClickHouse."</p>
+        <ul>
+          <li>Lee el tópico <b>continuamente</b>, sin que nadie tenga que ejecutar nada a mano.</li>
+          <li>Lleva el control de <b>offsets/checkpoints</b> — sabe exactamente hasta dónde ya consumió, aunque se reinicie.</li>
+          <li>Maneja <b>backpressure</b>: si ClickHouse no puede recibir más por un momento, ClickPipes frena sin perder datos.</li>
+          <li>Continúa solo después de una interrupción — no requiere intervención manual para retomar.</li>
+        </ul>
+      </div>
+
+      <div class="step chdb">
+        <h3>5 · ClickHouse RAW — almacenar el evento recibido</h3>
+        <p class="role">"Guardo el evento tal como llegó."</p>
+        <ul>
+          <li>Tabla <code>stb_lab.eventos_stb_json</code> — conserva el evento casi sin tocar.</li>
+          <li>Campos que se guardan tal cual: <code>event_id</code>, <code>device_id</code>, <code>event_type</code>, <code>event_timestamp</code>, <code>network</code>, <code>payload</code>, <code>metadata</code>.</li>
+          <li><code>network</code>, <code>payload</code> y <code>metadata</code> quedan como texto JSON — es la copia fiel del evento original, útil para auditar o reprocesar si algo cambia más adelante.</li>
+        </ul>
+      </div>
+
+      <div class="step chdb">
+        <h3>6 · Vista materializada — transformar RAW → Analítica</h3>
+        <p class="role">"Tomo el JSON y automáticamente preparo los campos para analizarlos."</p>
+        <ul>
+          <li><b>Extrae</b> los campos de adentro del JSON (<code>JSONExtractString</code>/<code>JSONExtractInt</code>) — canal, bitrate, región, cliente, etc.</li>
+          <li><b>Convierte tipos</b>: lo que en el JSON era texto (un número, por ejemplo) pasa a ser un <code>Int32</code> real, listo para sumar/promediar.</li>
+          <li>Corre <b>automáticamente</b> en cuanto llega una fila nueva a la tabla RAW — no hay que programar ni ejecutar nada aparte.</li>
+        </ul>
+      </div>
+
+      <div class="step chdb">
+        <h3>7 · ClickHouse Analítica — información lista para consultar</h3>
+        <p class="role">"Aquí tengo los datos listos para analizar."</p>
+        <ul>
+          <li>Tabla <code>stb_lab.eventos_stb_analitica</code> — mismas filas que RAW, pero ya aplanadas y tipadas por la vista materializada.</li>
+          <li>Es la tabla contra la que se debe consultar para reportes y dashboards — no la RAW, que sigue en formato JSON.</li>
+        </ul>
+      </div>
+
+      <div class="step dash">
+        <h3>8 · Dashboard — visualizar y monitorear</h3>
+        <p class="role">"Convierto los eventos en información útil."</p>
+        <ul>
+          <li>Consulta la tabla Analítica y la convierte en métricas que alguien realmente puede usar para decidir algo.</li>
+        </ul>
+        <div class="chips">
+          <span class="chip-tag">total de eventos</span><span class="chip-tag">STB activos</span><span class="chip-tag">eventos por tipo</span>
+          <span class="chip-tag">buffering</span><span class="chip-tag">errores</span><span class="chip-tag">bitrate</span>
+          <span class="chip-tag">calidad de señal</span><span class="chip-tag">firmware</span><span class="chip-tag">regiones</span><span class="chip-tag">canales</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Nota sobre esta variante del diseño</h2></div>
+    <div class="callout good">
+      <div class="ico">ℹ️</div>
+      <p>
+        Este flujo <b>simplifica</b> lo que describen los reportes de arquitectura anteriores: aquí un solo
+        <b>API/Gateway</b> hace el trabajo que antes se repartía entre <b>Broker + Bridge</b>, y el
+        <b>enriquecimiento</b> ocurre <i>dentro</i> de ClickHouse (la vista materializada del paso 6) en vez de
+        en un <b>Worker</b> separado antes de Kafka con dos tópicos (crudo/enriquecido). Es una variante más
+        liviana, razonable mientras el volumen es de laboratorio — si más adelante se necesita repartir el
+        mismo evento hacia <b>BigQuery</b> además de ClickHouse (como en la propuesta de
+        <a href="arquitectura-hibrida-clickhouse-bigquery.html">arquitectura híbrida</a>), vale la pena
+        revisar si el Worker separado vuelve a ganarse su lugar. Ver también la
+        <a href="guia-configuracion-clickhouse-cloud.html">guía de configuración de ClickHouse Cloud</a> para
+        el detalle de cómo se arma cada pieza.
+      </p>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      Diagrama de flujo del pipeline probado en el laboratorio de ClickHouse Cloud — sin datos de cuentas ni
+      credenciales, solo la forma del proceso. Complementa la guía de configuración y el comparativo de
+      arquitecturas ya publicados en este mismo sitio.
+    </p>
+    <div class="chips">
+      <span class="chip-tag">ClickHouse Cloud</span>
+      <span class="chip-tag">ClickPipes</span>
+      <span class="chip-tag">Kafka</span>
+      <span class="chip-tag">vista materializada</span>
+      <span class="chip-tag">flujo de datos</span>
+    </div>
+  </footer>
+
+</div>

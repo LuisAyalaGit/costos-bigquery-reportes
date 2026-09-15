@@ -1,0 +1,198 @@
+<title>ClickHouse: Resumen de Investigación</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --page:#EEF2F6; --surface:#FFFFFF; --surface-2:#F4F7FA; --border:#DCE3EA;
+    --ink:#101820; --ink-2:#45566A; --muted:#7C8B9B;
+    --accent:#2a78d6; --accent-soft:#E4EEFC; --accent-ink:#0f4a92;
+    --prov-bq:#2a78d6; --prov-dynamo:#c9820a; --prov-ch:#1baf7a; --prov-chc:#008300; --prov-aurora:#7b3fd6;
+    --good:#0ca30c; --warning:#c98500; --critical:#d03b3b;
+    --shadow: 0 1px 2px rgba(16,24,32,0.04), 0 8px 24px -12px rgba(16,24,32,0.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+      --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+      --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+      --prov-bq:#5b9eec; --prov-dynamo:#e3a339; --prov-ch:#37c290; --prov-chc:#3fc23f; --prov-aurora:#a988e8;
+      --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --page:#0B0F14; --surface:#121820; --surface-2:#171F29; --border:#233040;
+    --ink:#EDF2F7; --ink-2:#B9C6D3; --muted:#7F91A3;
+    --accent:#5b9eec; --accent-soft:rgba(91,158,236,0.14); --accent-ink:#bcdcff;
+    --prov-bq:#5b9eec; --prov-dynamo:#e3a339; --prov-ch:#37c290; --prov-chc:#3fc23f; --prov-aurora:#a988e8;
+    --good:#3fc23f; --warning:#fab219; --critical:#e8615f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 28px -12px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--page); color:var(--ink); font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1100px; margin:0 auto; padding:40px 24px 64px; }
+
+  .masthead{ display:flex; flex-direction:column; gap:6px; margin-bottom:22px; }
+  .eyebrow{ font:600 12px/1 "IBM Plex Mono", monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); display:flex; align-items:center; gap:8px; }
+  .eyebrow .dot{ width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px var(--accent-soft); }
+  h1{ font:700 32px/1.18 "IBM Plex Sans", sans-serif; margin:2px 0 0; text-wrap:balance; letter-spacing:-.01em; }
+  .subtitle{ color:var(--ink-2); font-size:15px; line-height:1.65; max-width:88ch; margin-top:4px; }
+  .subtitle b{ color:var(--ink); font-weight:600; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px 26px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .card-head h2{ font:600 18px/1.3 "IBM Plex Sans", sans-serif; margin:0; }
+  .card-head .meta{ font:500 12px/1 "IBM Plex Mono", monospace; color:var(--muted); }
+  .card-note{ font-size:12.5px; color:var(--muted); line-height:1.6; margin-top:2px; max-width:96ch; }
+
+  .callout{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-2); border:1px dashed var(--border); border-radius:12px; padding:16px 18px; margin-top:14px; }
+  .callout.good{ border-color:var(--good); background:rgba(12,163,12,.06); }
+  .callout .ico{ font-size:18px; line-height:1.3; }
+  .callout p{ margin:0; font-size:13px; color:var(--ink-2); line-height:1.7; }
+  .callout b{ color:var(--ink); }
+
+  .swatch{ display:inline-block; width:9px; height:9px; border-radius:50%; }
+  .barlist{ display:flex; flex-direction:column; gap:14px; margin-top:16px; }
+  .barrow{ display:grid; grid-template-columns:230px 1fr 130px; align-items:center; gap:10px; }
+  .barrow .who{ font-size:13px; font-weight:500; color:var(--ink); display:flex; align-items:center; gap:7px; }
+  .barrow .who small{ display:block; font:400 11px "IBM Plex Mono",monospace; color:var(--muted); font-weight:400; }
+  .track{ background:var(--surface-2); border-radius:6px; height:22px; position:relative; overflow:hidden; }
+  .fill{ position:absolute; inset:0 auto 0 0; border-radius:6px; }
+  .barrow .amt{ text-align:right; font:600 13px "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; }
+
+  .tblwrap{ overflow-x:auto; margin-top:14px; border:1px solid var(--border); border-radius:12px; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+  thead th{ text-align:left; font:600 11px "IBM Plex Sans",sans-serif; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); background:var(--surface-2); padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--border); color:var(--ink-2); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr.total td{ font-weight:600; color:var(--ink); background:var(--surface-2); }
+  td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; color:var(--ink); white-space:nowrap; }
+  td.name{ color:var(--ink); font-weight:500; }
+
+  .status-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:16px; }
+  .status-card{ border:1px solid var(--border); border-radius:12px; padding:16px 18px; background:var(--surface-2); }
+  .status-card .tag{ display:inline-flex; align-items:center; gap:6px; font:600 11px "IBM Plex Mono",monospace; color:var(--good); margin-bottom:8px; }
+  .status-card .tag::before{ content:"✓"; }
+  .status-card h3{ margin:0 0 6px; font-size:14px; }
+  .status-card p{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.6; }
+
+  .checklist{ margin:14px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px; }
+  .checklist li{ display:flex; gap:10px; align-items:flex-start; font-size:13px; color:var(--ink-2); line-height:1.6; }
+  .checklist .num{ flex:none; width:22px; height:22px; border-radius:50%; background:var(--accent-soft); color:var(--accent-ink); font:600 11px "IBM Plex Mono",monospace; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+  .checklist b{ color:var(--ink); }
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow"><span class="dot"></span>resumen de investigación</div>
+    <h1>ClickHouse para ingesta de eventos STB</h1>
+    <div class="subtitle">
+      Evaluación de ClickHouse como base para el nuevo flujo de eventos de los Set-Top Box, comparado contra
+      cuatro alternativas, con una arquitectura recomendada y una prueba funcional ya validada.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Comparativo de costo entre los 5 motores evaluados</h2>
+      <div class="meta">mes 12 · escenario de volumen medio · 10,958 GB acumulados</div>
+    </div>
+    <div class="barlist">
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-chc)"></span>ClickHouse Cloud</div>
+        <div class="track"><div class="fill" style="width:22.3%; background:var(--prov-chc);"></div></div>
+        <div class="amt">$776.25</div>
+      </div>
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-ch)"></span>ClickHouse autoalojado</div>
+        <div class="track"><div class="fill" style="width:25.5%; background:var(--prov-ch);"></div></div>
+        <div class="amt">~$890</div>
+      </div>
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-bq)"></span>BigQuery</div>
+        <div class="track"><div class="fill" style="width:74.5%; background:var(--prov-bq);"></div></div>
+        <div class="amt">~$2,107–3,087</div>
+      </div>
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-aurora)"></span>Amazon Aurora</div>
+        <div class="track"><div class="fill" style="width:81.5%; background:var(--prov-aurora);"></div></div>
+        <div class="amt">$3,376.68</div>
+      </div>
+      <div class="barrow">
+        <div class="who"><span class="swatch" style="background:var(--prov-dynamo)"></span>DynamoDB</div>
+        <div class="track"><div class="fill" style="width:100%; background:var(--prov-dynamo);"></div></div>
+        <div class="amt">$4,145.85</div>
+      </div>
+    </div>
+    <div class="callout good">
+      <div class="ico">✅</div>
+      <p><b>ClickHouse Cloud resulta el más económico de los cinco</b> al volumen proyectado, y es también el
+      que menos infraestructura propia requiere operar.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Arquitectura recomendada</h2>
+      <div class="meta">ClickHouse Cloud + BigQuery en paralelo</div>
+    </div>
+    <div class="card-note">
+      En vez de reemplazar BigQuery, la propuesta usa los dos motores a la vez: ClickHouse Cloud para consultas
+      operativas rápidas, y BigQuery como histórico completo alimentando Looker Studio — ambos reciben el mismo
+      evento desde Kafka al mismo tiempo, sin depender uno del otro.
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead><tr><th>Combinación</th><th class="num">Costo/mes</th></tr></thead>
+        <tbody>
+          <tr class="total"><td class="name">ClickHouse Cloud (Scale, TTL 90 días) + BigQuery</td><td class="num">$980.75</td></tr>
+          <tr><td class="name">ClickHouse autoalojado + BigQuery</td><td class="num">$1,321.92</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-note">El TTL de 90 días en ClickHouse mantiene solo los datos recientes ahí; el histórico completo permanece en BigQuery sin pérdida de información.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Validación práctica</h2>
+      <div class="meta">ambiente de prueba en ClickHouse Cloud</div>
+    </div>
+    <div class="status-grid">
+      <div class="status-card">
+        <div class="tag">confirmado</div>
+        <h3>Motor de tabla correcto</h3>
+        <p>Tablas creadas con <code>MergeTree</code>, que ClickHouse Cloud convierte automáticamente a <code>SharedMergeTree</code> — el motor nativo recomendado para el servicio administrado.</p>
+      </div>
+      <div class="status-card">
+        <div class="tag">confirmado</div>
+        <h3>Transformación automática</h3>
+        <p>Una vista materializada convierte cada evento JSON crudo en columnas tipadas listas para analizar, sin intervención manual.</p>
+      </div>
+      <div class="status-card">
+        <div class="tag">confirmado</div>
+        <h3>Traspaso a BigQuery</h3>
+        <p>Los eventos procesados en ClickHouse se replicaron a BigQuery sin pérdida ni duplicación — mismos registros, mismos valores en ambos lados.</p>
+      </div>
+      <div class="status-card">
+        <div class="tag">confirmado</div>
+        <h3>Costo de la prueba</h3>
+        <p>Ambiente de desarrollo (tier Basic): menos de $2 acumulados durante toda la fase de pruebas.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Próximos pasos</h2></div>
+    <ol class="checklist">
+      <li><span class="num">1</span><span>Definir la estrategia de deduplicación de eventos antes de escalar el volumen de prueba.</span></li>
+      <li><span class="num">2</span><span>Conectar la ingesta a Kafka en vez de inserción manual, usando ClickPipes.</span></li>
+      <li><span class="num">3</span><span>Mover el servicio de tier Basic a tier Scale para el ambiente productivo.</span></li>
+      <li><span class="num">4</span><span>Aplicar el TTL de 90 días y activar el envío en paralelo hacia BigQuery.</span></li>
+      <li><span class="num">5</span><span>Piloto con un grupo reducido de STB reales antes de escalar al total de dispositivos.</span></li>
+    </ol>
+  </div>
+
+</div>
